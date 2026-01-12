@@ -109,6 +109,43 @@ When working a card, read:
 
 The column docs contain full phase workflows.
 
+## Card Content Model
+
+Cards have two content areas with different purposes:
+
+| Area | Purpose | Content | Persistence |
+|------|---------|---------|-------------|
+| **Body** | Source of truth | Finalized requirements, chosen design, history | Permanent |
+| **Discussion** | Conversation | Questions, proposed options, Q&A dialogue | Ephemeral |
+
+**The rule:** Only put finalized, approved content in the body. All questions, proposals awaiting selection, and agent-human dialogue go in discussion.
+
+**Why this matters:**
+- Body is what readers see first — it should be the spec, not a chat log
+- Discussion captures the decision-making process without cluttering the spec
+- Backends implement this differently (see backend docs)
+
+### Content Routing
+
+| Content Type | Destination |
+|--------------|-------------|
+| Questions for human | Discussion |
+| Multiple approaches for selection | Discussion |
+| Agent-human Q&A | Discussion |
+| Progress updates | Discussion |
+| Finalized requirements | Body |
+| Chosen design (after human selects) | Body |
+| History table | Body |
+
+### Backend Implementations
+
+| Backend | Body | Discussion |
+|---------|------|------------|
+| GitHub | Issue body | Issue comments |
+| JSON | `cards/{id}.md` | `cards/{id}/discussion.md` |
+
+See backend-specific docs for implementation details.
+
 ## Error Handling Principles
 
 | Condition | Response |
