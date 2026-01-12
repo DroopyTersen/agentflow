@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+bun.lock
+
+# OS
+.DS_Store
+
+# Editor
+.cursor/
+
+# AgentFlow runtime (in target projects, not here)
+.agentflow/.last_output.txt
+.agentflow/progress.txt
