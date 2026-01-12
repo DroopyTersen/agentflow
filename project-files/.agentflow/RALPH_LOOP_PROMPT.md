@@ -155,7 +155,7 @@ Keep entries concise. This file helps future iterations skip exploration.
 - **Read the column doc** — Follow the detailed instructions for the phase
 - **Document everything** — Use `/af context` to update card before moving
 - **Update progress.txt** — Always append completion entry before exiting
-- **Commit your work** — Commits let future iterations see changes via git history
+- **Commit and push** — Always `git push` after committing; unpushed commits are invisible to other iterations
 - **Exit when blocked** — If waiting on human, add tag and exit
 - **Use the agents** — Call code-explorer, code-architect, code-reviewer as specified
 - **Skip tagged cards** — Never pick up cards with `needs-feedback` or `blocked` tags
@@ -399,3 +399,17 @@ If rebase has conflicts:
 3. If complex, abort and flag for human: `git rebase --abort`, then add `needs-feedback` tag
 
 If the branch doesn't exist, create it (see `01b_approved.md`).
+
+### After Every Commit: Push
+
+**Always push immediately after committing:**
+```bash
+git push origin HEAD
+```
+
+Unpushed commits are invisible to:
+- Other loop iterations (they clone/fetch from remote)
+- Human reviewers
+- CI/CD pipelines
+
+Never finish an iteration with unpushed commits.
