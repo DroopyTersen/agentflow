@@ -7,7 +7,14 @@ description: AgentFlow Kanban workflow for AI-assisted development. Use when the
 
 A friendly interface to the AgentFlow Kanban workflow. Translates informal requests into `/af` commands.
 
-Please read @.claude/commands/af.md for the complete command reference.
+## Documentation Structure
+
+- `@.claude/commands/af.md` — Command dispatcher (start here)
+- `@.claude/skills/agentflow/core.md` — Shared concepts (columns, tags, agents)
+- `@.claude/skills/agentflow/github/` — GitHub Projects backend implementation
+- `@.claude/skills/agentflow/json/` — Local JSON backend implementation
+
+The af.md dispatcher will guide you to read the appropriate backend-specific files based on which config exists (`.agentflow/github.json` or `.agentflow/board.json`).
 
 ## How This Works
 
@@ -162,5 +169,7 @@ When the user seems stuck:
 
 ## Full Command Reference
 
-For complete command documentation, see:
-@.claude/commands/af.md
+For complete command documentation:
+1. Start with `@.claude/commands/af.md` (dispatcher)
+2. Read `@.claude/skills/agentflow/core.md` for shared concepts
+3. Read backend-specific files as directed by af.md
