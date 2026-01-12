@@ -13,6 +13,8 @@ Read these files:
 
 The `progress.txt` file is your session memory. It tells you what previous iterations accomplished, what decisions were made, and what to focus on. Read it to skip exploration and jump straight into work.
 
+**Check for interrupted work:** Look at the last entry in `progress.txt`. If it's a `STARTING:` entry without a subsequent completion entry for that card, the previous iteration was interrupted. See "Interrupted Work Recovery" section below.
+
 ---
 
 ## Step 2: Get Workable Cards
@@ -42,7 +44,21 @@ Once selected, run `/af show <id>` to get full card details and context.
 
 ---
 
-## Step 4: Execute Phase
+## Step 4: Announce Work
+
+Before starting work, **append** to `.agentflow/progress.txt`:
+
+```
+---
+[{YYYY-MM-DD HH:MM}] STARTING: {card.id} - {card.title}
+Column: {column}
+```
+
+This creates a breadcrumb. If the iteration gets interrupted, the next agent can detect and recover.
+
+---
+
+## Step 5: Execute Phase
 
 Read the column-specific instructions for detailed execution steps:
 
@@ -66,7 +82,7 @@ Read the column-specific instructions for detailed execution steps:
 
 ---
 
-## Step 5: Update the Card
+## Step 6: Update the Card
 
 After completing the phase, use `/af` commands to update the card:
 
@@ -95,7 +111,7 @@ Content here...
 
 ---
 
-## Step 6: Update Progress Log
+## Step 7: Update Progress Log
 
 After completing the phase, **append** to `.agentflow/progress.txt`:
 
@@ -113,7 +129,7 @@ Keep entries concise. This file helps future iterations skip exploration.
 
 ---
 
-## Step 7: Exit
+## Step 8: Exit
 
 1. Summarize what was done:
    ```
@@ -128,11 +144,13 @@ Keep entries concise. This file helps future iterations skip exploration.
 ## Important Rules
 
 - **ONE card per iteration** — Do not process multiple cards
+- **Announce before working** — Write STARTING entry to progress.txt before beginning work
+- **Check for interruptions** — If last progress entry is STARTING without completion, assess and recover
 - **Complete the phase fully** — Don't leave partial work
 - **Move or tag the card** — Card must move forward OR get `needs-feedback` tag
 - **Read the column doc** — Follow the detailed instructions for the phase
 - **Document everything** — Use `/af context` to update card before moving
-- **Update progress.txt** — Always append to progress log before exiting
+- **Update progress.txt** — Always append completion entry before exiting
 - **Commit your work** — Commits let future iterations see changes via git history
 - **Exit when blocked** — If waiting on human, add tag and exit
 - **Use the agents** — Call code-explorer, code-architect, code-reviewer as specified
@@ -175,6 +193,55 @@ If during implementation you discover the tech design needs significant changes:
 
 ---
 
+## Interrupted Work Recovery
+
+If you detect an interrupted iteration (a `STARTING:` entry without a subsequent completion entry for that card):
+
+**1. Assess the situation:**
+
+Check for signs of complexity vs external interruption:
+
+| Signal | Likely Cause |
+|--------|--------------|
+| Clean git status, no partial work | External (network, timeout, user killed) |
+| Uncommitted changes mid-implementation | Possibly complexity or external |
+| Card in same column as STARTING entry | Work didn't complete |
+| Large scope visible in card context | Complexity risk |
+| Multiple failed attempts in progress.txt | Complexity - don't retry |
+
+**2. Decide how to proceed:**
+
+**If external interruption suspected** (clean state, simple task):
+- Resume the card as normal
+- The STARTING entry already announced intent, just continue working
+
+**If complexity suspected** (partial work, large scope, previous failures):
+- Do NOT attempt to be a hero
+- Add to the card's Conversation Log documenting:
+  - That this iteration detected an interrupted previous attempt
+  - What signs of complexity you observed
+  - Your suspicion of what might have gone wrong
+- Run `/af tag <id> add needs-feedback`
+- Exit and let a human investigate
+
+**3. Example Conversation Log entry for complexity:**
+
+```
+/af context <id> append "
+## Conversation Log
+
+**[Agent - {date}]:** Detected interrupted iteration. Previous attempt started at {timestamp} but never completed. Observations:
+- {what you found: partial commits, large scope, etc.}
+- Suspicion: {your theory on what went wrong}
+
+Flagging for human review rather than retrying.
+"
+```
+
+The goal: Don't waste cycles retrying something that's fundamentally blocked. Surface it to a human.
+
+---
+
 ## Completion Signals
 
 - `AGENTFLOW_NO_WORKABLE_CARDS` — No cards available (all in human columns or tagged)
@@ -187,7 +254,24 @@ If during implementation you discover the tech design needs significant changes:
 
 `progress.txt` is session memory — an append-only log that persists between iterations.
 
-**What to include:**
+**Entry types:**
+
+1. **STARTING entry** (Step 4) — Written before work begins:
+   ```
+   [{timestamp}] STARTING: {card.id} - {card.title}
+   Column: {column}
+   ```
+
+2. **Completion entry** (Step 7) — Written after work completes:
+   ```
+   [{timestamp}] Card: {card.id} - {card.title}
+   Phase: {old-column} → {new-column}
+   What was done: ...
+   ```
+
+A STARTING entry without a subsequent completion entry indicates an interrupted iteration.
+
+**What to include in completion entries:**
 - Card completed and phase transition
 - Key decisions made and reasoning
 - Files created/modified
@@ -204,3 +288,48 @@ Commit after each phase. This gives future iterations:
 - A rollback point if something breaks
 
 The combination of progress.txt plus git history gives full context without burning tokens on exploration.
+
+---
+
+## Branch Strategy
+
+Each card gets its own git branch. This isolates work and enables clean commits.
+
+### Branch Naming
+```
+{type}/{id}-{slug}
+```
+- `feature/123-add-user-authentication`
+- `bug/456-fix-pagination-offset`
+- `refactor/789-extract-validation-utils`
+
+### Workflow
+
+| Phase | Git Action |
+|-------|------------|
+| `approved` | Create branch from `main`, checkout |
+| `tech-design` | Spec commit + push |
+| `implementation` | Implementation commit + push |
+| `done` | Branch persists for reference |
+
+### Key Rules
+
+- **One branch per card** — Created when card enters `approved`
+- **Always push** — Every commit pushes to remote
+- **Check branch first** — Before working, ensure correct branch is checked out
+- **Reuse on rework** — If card returns from rejection, checkout existing branch (don't create new)
+
+### Branch Detection
+
+The card context contains the branch name:
+```markdown
+## Branch
+`feature/123-add-user-authentication`
+```
+
+If this section exists, the branch was already created. Just checkout:
+```bash
+git checkout feature/123-add-user-authentication
+```
+
+If it doesn't exist, create the branch (see `01b_approved.md`).
