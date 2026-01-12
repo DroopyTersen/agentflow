@@ -7,21 +7,14 @@ allowed-tools: Read, Write, Glob, Bash, Agent
 
 Usage: `/af <command> [args]`
 
-This backend uses GitHub Projects as the board and GitHub Issues as cards. Requires:
+This backend uses GitHub Projects as the board and GitHub Issues as cards.
+
+**Setup required:** Run `/af-setup-github` to configure the GitHub backend.
+
+**Prerequisites:**
 - `gh` CLI installed and authenticated
-- `.agentflow/github.json` with project number
+- `.agentflow/github.json` with project IDs (created during setup)
 - `gh auth refresh -s project` (for project scope)
-
-## Configuration
-
-Create `.agentflow/github.json`:
-```json
-{
-  "project": 42
-}
-```
-
-The owner and repo are derived from `git remote get-url origin`.
 
 ## Commands Overview
 
@@ -63,35 +56,12 @@ PROJECT=$(jq -r '.project' .agentflow/github.json)
 
 Create a new GitHub issue and add it to the project.
 
-**Process:**
-1. Read `.agentflow/github.json` for project number
-2. Ask user for description and type (feature, bug, or refactor)
-3. Create issue with type label:
-   ```bash
-   # Map type to label: feature→enhancement, bug→bug, refactor→refactor
-   gh issue create \
-     --title "{title}" \
-     --body-file /tmp/issue-body.md \
-     --label "{type_label}"
-   ```
-4. Add issue to project:
-   ```bash
-   gh project item-add {PROJECT} --owner {OWNER} --url {ISSUE_URL}
-   ```
-5. Move to "New" column:
-   ```bash
-   # Get item ID
-   ITEM_ID=$(gh project item-list {PROJECT} --owner {OWNER} --format json | \
-     jq -r '.items[] | select(.content.url == "{ISSUE_URL}") | .id')
+**IMPORTANT:** Creating an issue requires multiple steps. Each step must complete before the next:
 
-   # Get Status field ID and New option ID
-   gh project item-edit --project-id {PROJECT_ID} --id {ITEM_ID} \
-     --field-id {STATUS_FIELD_ID} --single-select-option-id {NEW_OPTION_ID}
-   ```
-6. Confirm: "✅ Created issue #{number}: {title}"
-
-**Issue Body Template:**
-```markdown
+**Step 1: Create the issue with body content**
+```bash
+# Write body to a temp file first (inline --body can fail silently)
+cat > /tmp/claude/issue-body.md << 'EOF'
 ## Type
 {feature | bug | refactor}
 
@@ -107,7 +77,48 @@ Create a new GitHub issue and add it to the project.
 | Date | Column | Actor | Notes |
 |------|--------|-------|-------|
 | {date} | New | Human | Created |
+EOF
+
+# Create issue with body from file
+gh issue create \
+  --title "{title}" \
+  --body-file /tmp/claude/issue-body.md \
+  --label "{type_label}"
+# Returns: https://github.com/OWNER/REPO/issues/NUMBER
 ```
+
+**Step 2: Add issue to project**
+```bash
+gh project item-add {PROJECT} --owner {OWNER} --url {ISSUE_URL}
+```
+
+**Step 3: Get the project item ID**
+```bash
+ITEM_ID=$(gh project item-list {PROJECT} --owner {OWNER} --format json | \
+  jq -r '.items[] | select(.content.number == {NUMBER}) | .id')
+```
+
+**Step 4: Set status column** (using IDs from github.json)
+```bash
+gh project item-edit \
+  --project-id {projectId} \
+  --id {ITEM_ID} \
+  --field-id {statusFieldId} \
+  --single-select-option-id {statusOptions.new}
+```
+
+**Step 5: Verify the issue**
+```bash
+gh project item-list {PROJECT} --owner {OWNER} --format json | \
+  jq '.items[] | select(.content.number == {NUMBER}) | {number: .content.number, title: .title, status: .status}'
+```
+
+**Confirm:** "✅ Created issue #{number}: {title} in {column}"
+
+**Type to label mapping:**
+- feature → `enhancement`
+- bug → `bug`
+- refactor → `refactor`
 
 ---
 
@@ -197,9 +208,11 @@ Total cards: 12
 
 Display full card information. The `<id>` is the issue number.
 
+**IMPORTANT:** Always include `comments` in the JSON fields to get the full conversation history.
+
 **Process:**
 ```bash
-# Get issue details
+# Get issue details - ALWAYS include comments field
 gh issue view {NUMBER} --json number,title,body,labels,state,comments
 
 # Get project item status
@@ -207,12 +220,20 @@ gh project item-list {PROJECT} --owner {OWNER} --format json | \
   jq '.items[] | select(.content.number == {NUMBER})'
 ```
 
-**Display:**
-- Issue number, title, state
-- Current column (from project Status field)
-- Labels (type, priority, tags)
-- Full issue body (card context)
-- Recent comments (conversation log)
+**Display (in this order):**
+1. Issue number, title, state
+2. Current column (from project Status field)
+3. Labels (type, priority, tags)
+4. Full issue body (card context)
+5. **All comments** (conversation log between agent and human)
+
+**Why comments matter:** Comments contain the ongoing dialogue between agent and human:
+- Agent questions and findings
+- Human feedback and decisions
+- Status updates and blockers
+- Code review results
+
+Without comments, you lose critical context about the card's history and any pending questions.
 
 ---
 
@@ -447,7 +468,7 @@ Invoke code-reviewer agent on a card's implementation.
 
 | Error | Response |
 |-------|----------|
-| github.json missing | "GitHub backend not configured. Create `.agentflow/github.json` with project number" |
+| github.json missing | "GitHub backend not configured. Run `/af-setup-github` to set up." |
 | gh not authenticated | "Run `gh auth login` to authenticate" |
 | Project scope missing | "Run `gh auth refresh -s project` to add project scope" |
 | Issue not found | "Issue #{number} not found" |
@@ -455,50 +476,6 @@ Invoke code-reviewer agent on a card's implementation.
 | Invalid column | "Unknown column: {col}. Valid: new, approved, refinement, tech-design, implementation, final-review, done" |
 | Has needs-feedback | "Issue #{number} is waiting for feedback. Use `/af feedback {number}` to respond." |
 | Has blocked label | "Issue #{number} is blocked: check issue for details" |
-
----
-
-## Label Setup
-
-Use GitHub's default labels where possible:
-
-**Type labels (map to AgentFlow types):**
-- `enhancement` — feature (default label)
-- `bug` — bug (default label)
-- `refactor` — refactor (create this one)
-
-**Tag labels:**
-- `needs-feedback` — waiting for human input (create this one, critical for agent)
-- `blocked` — blocked by external dependency (create this one)
-
-**Create the missing labels:**
-```bash
-gh label create "refactor" --color "1D76DB" --description "Code refactor"
-gh label create "needs-feedback" --color "FBCA04" --description "Waiting for human input"
-gh label create "blocked" --color "B60205" --description "Blocked by external dependency"
-```
-
----
-
-## Project Setup
-
-1. Create a GitHub Project (new Projects, not classic)
-2. Add a "Status" field with these options:
-   - New
-   - Approved
-   - Refinement
-   - Tech Design
-   - Implementation
-   - Final Review
-   - Done
-3. Note the project number from the URL
-4. Create `.agentflow/github.json`:
-   ```json
-   {
-     "project": YOUR_PROJECT_NUMBER
-   }
-   ```
-5. Run `gh auth refresh -s project` to add project scope
 
 ---
 
@@ -522,14 +499,44 @@ Agent("code-reviewer")
 
 ## Conversation Log via Comments
 
-Instead of a Conversation Log section in the issue body, use GitHub issue comments for agent-human dialogue:
+Instead of a Conversation Log section in the issue body, use GitHub issue comments for agent-human dialogue.
 
-**Agent asking needs-feedbacks:**
+### Adding Comments
+
 ```bash
-gh issue comment {NUMBER} --body "**Agent ({date}):** I have some needs-feedbacks:
+# Simple comment
+gh issue comment {NUMBER} --body "**Agent ({date}):** Your message here"
+
+# Multiline comment with markdown (works directly in quotes)
+gh issue comment {NUMBER} --body "**Agent ({date}):** I have some questions:
+
+## Questions
+1. Should we support both OAuth providers or just Google?
+2. Where should user sessions be stored?
+
+### Context
+- Current implementation uses sessionStorage
+- Need to decide on persistence strategy"
+```
+
+### Reading Comments
+
+```bash
+# Get all comments on an issue
+gh issue view {NUMBER} --json comments --jq '.comments[] | {author: .author.login, createdAt: .createdAt, body: .body}'
+
+# Get comments as part of full issue details
+gh issue view {NUMBER} --json number,title,body,labels,state,comments
+```
+
+### Comment Conventions
+
+**Agent asking questions:**
+```
+**Agent ({date}):** I have some questions:
 
 1. Should we support both OAuth providers or just Google?
-2. Where should user sessions be stored?"
+2. Where should user sessions be stored?
 ```
 
 **Human responding:**
@@ -540,4 +547,9 @@ gh issue comment {NUMBER} --body "**Human ({date}):**
 2. Use Redis for sessions"
 ```
 
-The `/af show` command displays recent comments as part of card context.
+**Agent providing updates:**
+```
+**Agent ({date}):** Implementation complete. Code review score: 85/100.
+```
+
+The `/af show` command displays all comments as part of card context.

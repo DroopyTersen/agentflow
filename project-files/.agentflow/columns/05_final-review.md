@@ -82,6 +82,7 @@ Optionally perform additional verification:
 - [ ] Verification results acceptable
 - [ ] No obvious issues in implementation
 - [ ] Code quality meets project standards
+- [ ] Branch pushed with all commits
 
 ---
 
@@ -105,6 +106,13 @@ Optionally perform additional verification:
 ### Review Notes
 {Any observations or comments}
 
+### Git Info
+| Field | Value |
+|-------|-------|
+| Branch | `{branch-name}` |
+| Spec Commit | `{sha}` |
+| Implementation Commit | `{sha}` |
+
 ---
 
 ## Completed
@@ -114,6 +122,7 @@ Optionally perform additional verification:
 | Field | Value |
 |-------|-------|
 | Type | {feature / bug / refactor} |
+| Branch | `{branch-name}` |
 | Spec Commit | `{sha}` |
 | Implementation Commit | `{sha}` |
 | Code Review Score | {XX}/100 |
@@ -231,6 +240,17 @@ Agent will rework from the specified phase.
 - **Provide actionable feedback** - if rejecting or requesting changes, be specific
 - **Use the right action** - small fixes = changes requested, major issues = rejected
 - **No tag needed** - agent picks up cards in `implementation` automatically
+
+---
+
+## Future: Pull Request Creation
+
+When PR workflow is enabled, Final Review will:
+1. Create PR from feature branch to main
+2. Add PR link to card context
+3. Human reviews PR alongside card
+
+For now, branches remain without PRs. Code is reviewed via the card's Code Review section.
 
 ---
 

@@ -173,11 +173,15 @@ Next Ralph iteration picks up the card and continues.
    - Verification steps (specific commands)
    - TDD plan
 
-### Step 6: Create Spec Commit
+### Step 6: Create Spec Commit and Push
 
 ```bash
+git add .
 git commit -m "spec({type}): {title}"
+git push -u origin HEAD
 ```
+
+The `-u` flag sets upstream tracking for the branch.
 
 Note: The `/af` command handles staging the appropriate files for the backend.
 
@@ -403,6 +407,7 @@ Which approach would you like? Or a blend (e.g., "Pragmatic, but use Clean's abs
 
 ### Spec Commit
 **SHA:** `{sha}`
+**Branch:** `{branch-name}`
 **Date:** {YYYY-MM-DD}
 
 ---

@@ -121,12 +121,15 @@ bun test integration/
 
 All verification must pass before proceeding.
 
-### Step 8: Create Implementation Commit
+### Step 8: Create Implementation Commit and Push
 
 ```bash
 git add .
 git commit -m "{type}({scope}): {title}"
+git push origin HEAD
 ```
+
+This pushes to the feature branch established in the Approved phase.
 
 **Type mapping:**
 - feature → `feat`
@@ -262,6 +265,7 @@ Do NOT continue implementing if the design is wrong.
 
 ### Implementation Commit
 **SHA:** `{sha}`
+**Branch:** `{branch-name}`
 **Date:** {YYYY-MM-DD}
 ```
 

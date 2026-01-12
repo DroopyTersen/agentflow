@@ -115,6 +115,7 @@ No further action required.
 | Field | Value |
 |-------|-------|
 | Type | {feature / bug / refactor} |
+| Branch | `{branch-name}` |
 | Spec Commit | `{sha}` |
 | Implementation Commit | `{sha}` |
 | Code Review Score | {XX}/100 |
@@ -159,6 +160,7 @@ The card serves as permanent documentation of:
 - Decisions made along the way
 - Who reviewed and approved
 - Commit references for traceability
+- Branch name for future reference
 
 ---
 
