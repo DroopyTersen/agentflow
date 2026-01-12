@@ -134,11 +134,17 @@ Command: .agentflow/loop.sh 50
 
 Save the task_id and tell the user it's running.
 
+**Loop output files:**
+- `.agentflow/loop_status.txt` — Quick status summary (always small, read this first)
+- `.agentflow/iterations/` — Per-iteration output files (only last 5 kept)
+- `.agentflow/progress.txt` — Accumulated progress log
+
 **When user asks for status** ("how's the loop?", "what's the progress?"):
-1. Check loop output: `TaskOutput(task_id, block=false)`
-2. Read `.agentflow/progress.txt` for completed work
-3. Run `/af status` to see current board state
-4. Summarize for user
+1. Read `.agentflow/loop_status.txt` for quick loop state
+2. Read `.agentflow/progress.txt` for completed work summary
+3. Optionally read latest iteration file for details: `tail -50 .agentflow/iterations/iteration_*.txt | tail -50`
+4. Run `/af status` (via subagent) to see current board state
+5. Summarize for user
 
 **Example response:**
 ```
@@ -151,7 +157,7 @@ Loop: Running (iteration 12/50)
 Needs attention: #126 has questions (needs-feedback)
 ```
 
-That's it — launch in background, check when asked.
+**Note:** Don't read the full task output (it grows large). Use `loop_status.txt` instead.
 
 ## Interpreting User Intent
 
