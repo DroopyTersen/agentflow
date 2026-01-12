@@ -8,7 +8,7 @@
 
 ## Summary
 
-Terminal state. Work is complete, approved, and committed. The card file remains as permanent documentation of the work performed.
+Terminal state. Work is complete, approved, and committed. The card remains as permanent documentation of the work performed.
 
 The Ralph Loop ignores cards in this column.
 
@@ -25,7 +25,7 @@ N/A - This is the terminal state.
 Card arrives from Human Review after approval.
 
 - Work item is complete
-- Card file contains the full history
+- Card context contains the full history
 - Commits (spec and implementation) are in repository history
 - Card remains for future reference
 
@@ -33,7 +33,7 @@ No further action required.
 
 ---
 
-## Card File Final State
+## Card Final State
 
 ```markdown
 # {Title}
@@ -151,10 +151,10 @@ No further action required.
 
 Done cards can be:
 - **Left in place** for reference (recommended initially)
-- **Archived** periodically (move to `.agentflow/archive/`)
+- **Archived** periodically (backend-specific location)
 - **Deleted** after a retention period
 
-The card file serves as permanent documentation of:
+The card serves as permanent documentation of:
 - What was built and why
 - Decisions made along the way
 - Who reviewed and approved
@@ -176,7 +176,7 @@ None (terminal state)
 
 ## Important Notes
 
-- **Card files are documentation** - they capture the full journey
+- **Cards are documentation** - they capture the full journey
 - **Commits are linked** - spec and implementation commits are recorded
 - **History tells the story** - the history table shows progression
 - **Keep for reference** - valuable for understanding past decisions

@@ -59,7 +59,7 @@ When in doubt, research the approaches and ask. A 5-minute pause for human input
 ### Step 1: Read Card Context
 
 ```
-Read the card's context file: .agentflow/cards/{card.id}.md
+Read the card's context (title, description, type, and Refinement section)
 ```
 
 Review the Refinement section for:
@@ -134,7 +134,7 @@ After all agents complete:
 5. **Ask the user** which approach they prefer (or what blend)
 
 Then:
-- Document everything in the card file
+- Document everything in the card context
 - Add `needs-feedback` tag
 - Exit this iteration — human will respond
 
@@ -146,7 +146,7 @@ Only skip presenting approaches if ALL of these are true:
 - Zero design decisions involved
 - Low risk, easily reversible
 
-If skipping, document why in the card file, then proceed to Step 5.
+If skipping, document why in the card context, then proceed to Step 5.
 
 ### Step 4: Human Responds (only if tagged)
 
@@ -176,9 +176,10 @@ Next Ralph iteration picks up the card and continues.
 ### Step 6: Create Spec Commit
 
 ```bash
-git add .agentflow/cards/{id}.md
 git commit -m "spec({type}): {title}"
 ```
+
+Note: The `/af` command handles staging the appropriate files for the backend.
 
 Examples:
 - `spec(feature): add user authentication`
@@ -187,10 +188,9 @@ Examples:
 
 ### Step 7: Update Card and Move
 
-1. Append Tech Design section to card file (see template below)
+1. Append Tech Design section to card context (see template below)
 2. Update History table
 3. Move card to `implementation` column
-4. Update `updatedAt` in board.json
 
 ---
 
@@ -232,7 +232,7 @@ Examples:
 
 ---
 
-## Card File Update
+## Card Context Update
 
 ### If Human Input Needed (awaiting feedback)
 

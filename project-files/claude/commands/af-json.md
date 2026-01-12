@@ -16,6 +16,8 @@ Usage: `/af <command> [args]`
 | `/af status` | Quick board overview |
 | `/af show <id>` | Show card details |
 | `/af move <id> <column>` | Move card manually |
+| `/af tag <id> <action> <tag>` | Add or remove tags |
+| `/af context <id> <action> <content>` | Update card context |
 | `/af work <id>` | Work on specific card |
 | `/af next` | Work on next available card |
 | `/af loop` | Continuous work mode |
@@ -75,6 +77,9 @@ Create a new card in the New column.
 ## `/af list` — List All Cards
 
 Show cards grouped by column.
+
+**Flags:**
+- `--workable` — Only show cards that can be worked on (in agent columns, not tagged `needs-feedback` or `blocked`)
 
 **Output format:**
 ```
@@ -164,6 +169,74 @@ Move a card to any column.
 **Warn if:**
 - Moving to agent-workable column (agent will pick it up)
 - Moving backward (might lose work)
+
+---
+
+## `/af tag <id> <action> <tag>` — Manage Card Tags
+
+Add or remove tags from a card.
+
+**Actions:**
+- `add` — Add a tag to the card
+- `remove` — Remove a tag from the card
+
+**Common tags:**
+- `needs-feedback` — Card is waiting for human input
+- `blocked` — Card is blocked by external dependency
+
+**Process:**
+1. Find card in board.json
+2. Update card's `tags` array:
+   - `add`: Append tag if not present
+   - `remove`: Remove tag if present
+3. Update `updatedAt` timestamp
+4. Save board.json
+5. Confirm: "✅ Tag `{tag}` {added to|removed from} card `{id}`"
+
+**Examples:**
+```
+/af tag abc123 add needs-feedback
+/af tag abc123 remove blocked
+```
+
+---
+
+## `/af context <id> <action> <content>` — Update Card Context
+
+Append content or add history entries to a card's context.
+
+**Actions:**
+- `append` — Append markdown content to the card context
+- `history` — Add an entry to the History table
+
+**Process for `append`:**
+1. Find card in board.json
+2. Read context file `.agentflow/cards/{id}.md`
+3. Append the provided content
+4. Save context file
+5. Update `updatedAt` in board.json
+
+**Process for `history`:**
+1. Find card in board.json
+2. Read context file
+3. Add row to History table: `| {date} | {column} | Agent | {content} |`
+4. Save context file
+5. Update `updatedAt` in board.json
+
+**Examples:**
+```
+/af context abc123 append "
+## Refinement
+**Date:** 2026-01-11
+**Status:** Complete
+
+### Requirements
+- User can log in with Google OAuth
+- Session persists for 7 days
+"
+
+/af context abc123 history "Requirements documented, ready for tech design"
+```
 
 ---
 

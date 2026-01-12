@@ -25,7 +25,7 @@ Users can speak naturally about their workflow. This skill interprets intent and
 | "I answered the questions on abc123"              | `/af feedback abc123`                             |
 | "move abc123 to done"                             | `/af move abc123 done`                            |
 | "review the code on abc123"                       | `/af review abc123`                               |
-| "start the loop" / "run autonomously"             | Tell user to run `.agentflow/loop.sh` in terminal |
+| "start the loop" / "run autonomously"             | `/af loop` (provides backend-specific instructions) |
 
 ## Quick Reference
 
@@ -81,16 +81,15 @@ Creates a card in the New column. Will prompt for type (feature/bug/refactor) an
 
 The loop runs externally (not inside Claude):
 
-```bash
-.agentflow/loop.sh        # Run until blocked or done
-.agentflow/loop.sh 50     # Max 50 iterations
+```
+/af loop    # Shows instructions for running the external loop
 ```
 
 ## Interpreting User Intent
 
 When the user's request is ambiguous:
 
-1. Check `.agentflow/board.json` for current state
+1. Check current board state with `/af status`
 2. Use `/af status` to understand what needs attention
 3. Ask clarifying questions if multiple interpretations exist
 

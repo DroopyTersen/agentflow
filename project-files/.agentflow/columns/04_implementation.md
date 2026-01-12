@@ -30,7 +30,7 @@ This column is typically agent-only with no human interaction (unless blocked or
 ### Step 1: Read Card Context
 
 ```
-Read the card's context file: .agentflow/cards/{card.id}.md
+Read the card's context (title, description, Refinement, and Tech Design sections)
 ```
 
 Find the Tech Design section:
@@ -83,7 +83,7 @@ Invoke the code-reviewer agent:
 ```
 Agent("code-reviewer")
 > Card: {card.title}
-> Tech design: {from card file}
+> Tech design: {from card}
 > Files changed: {list of files}
 ```
 
@@ -140,10 +140,9 @@ git commit -m "{type}({scope}): {title}"
 
 ### Step 9: Update Card and Move
 
-1. Append Implementation and Code Review sections to card file
+1. Append Implementation and Code Review sections to card context
 2. Update History table
 3. Move card to `final-review` column
-4. Update `updatedAt` in board.json
 
 ---
 
@@ -206,7 +205,7 @@ Do NOT continue implementing if the design is wrong.
 
 ---
 
-## Card File Update
+## Card Context Update
 
 ```markdown
 ---

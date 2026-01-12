@@ -34,7 +34,7 @@ When in doubt, ask. It's better to pause for clarification than to build the wro
 ### Step 1: Read Card Context
 
 ```
-Read the card's context file: .agentflow/cards/{card.id}.md
+Read the card's context (title, description, type, priority, and any existing sections)
 ```
 
 ### Step 2: Run Code Explorer
@@ -45,7 +45,7 @@ Invoke the code-explorer agent:
 Agent("code-explorer")
 > Task: {card.title}
 > Type: {card.type}
-> Description: {from card file}
+> Description: {from card}
 > Project context: {from PROJECT_LOOP_PROMPT.md}
 ```
 
@@ -71,7 +71,7 @@ Based on the exploration, decide:
 ### Step 4: Human Responds (only if tagged)
 
 This step happens outside the Ralph Loop:
-1. Human reviews card file
+1. Human reviews card
 2. Human answers questions in Conversation Log
 3. Human removes `needs-feedback` tag
 
@@ -87,10 +87,10 @@ Document complete functional requirements:
 
 ### Step 6: Update Card and Move
 
-1. Append Refinement section to card file (see template below)
+1. Append Refinement section to card context (see template below)
 2. Update History table
 3. Move card to `tech-design` column
-4. Update `updatedAt` in board.json
+4. Update card metadata (timestamp, etc.)
 
 ---
 
@@ -128,7 +128,7 @@ Document complete functional requirements:
 
 ---
 
-## Card File Update
+## Card Context Update
 
 ### If Questions Needed (awaiting feedback)
 

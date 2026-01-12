@@ -8,41 +8,20 @@ You are running in AgentFlow autonomous mode. Complete ONE card's current phase,
 
 Read these files:
 
-1. `.agentflow/board.json` — Board state with all cards
-2. `.agentflow/PROJECT_LOOP_PROMPT.md` — Project-specific instructions
-3. `.agentflow/progress.txt` — Session progress log (if exists)
+1. `.agentflow/PROJECT_LOOP_PROMPT.md` — Project-specific instructions
+2. `.agentflow/progress.txt` — Session progress log (if exists)
 
 The `progress.txt` file is your session memory. It tells you what previous iterations accomplished, what decisions were made, and what to focus on. Read it to skip exploration and jump straight into work.
 
 ---
 
-## Step 2: Select a Card
+## Step 2: Get Workable Cards
 
-Find workable cards where:
+Run `/af list --workable` to get cards that are:
 
-- `column` is `approved`, `refinement`, `tech-design`, or `implementation`
-- `tags` array does NOT contain `"needs-feedback"`
-- `tags` array does NOT contain `"blocked"`
-
-Here's the selection logic as a jq query for reference:
-
-```bash
-jq '[.cards[]
-    | select(.column == "approved" or .column == "refinement" or .column == "tech-design" or .column == "implementation")
-    | select((.tags // []) | index("blocked") | not)
-    | select((.tags // []) | index("needs-feedback") | not)
-] | sort_by(
-    (if .priority == "critical" then 0 elif .priority == "high" then 1 elif .priority == "medium" then 2 else 3 end),
-    .createdAt
-) | first' .agentflow/board.json
-```
-
-To choose from workable cards, consider:
-
-1. User provided guidance (if any)
-2. Momentum — continue working on whatever you worked on last in progress.txt if it's unblocked
-3. Priority: `critical` > `high` > `medium` > `low`
-4. What you think is most valuable to work on next
+- In columns: `approved`, `refinement`, `tech-design`, or `implementation`
+- NOT tagged `needs-feedback`
+- NOT tagged `blocked`
 
 **If no workable cards exist:**
 Output exactly: `AGENTFLOW_NO_WORKABLE_CARDS`
@@ -50,7 +29,20 @@ Then exit immediately. Do not do anything else.
 
 ---
 
-## Step 3: Execute Phase
+## Step 3: Select a Card
+
+From the workable cards, select based on:
+
+1. User provided guidance (if any)
+2. Momentum — continue working on whatever you worked on last in progress.txt if it's unblocked
+3. Priority: `critical` > `high` > `medium` > `low`
+4. Age — oldest cards first (by position in list)
+
+Once selected, run `/af show <id>` to get full card details and context.
+
+---
+
+## Step 4: Execute Phase
 
 Read the column-specific instructions for detailed execution steps:
 
@@ -74,22 +66,36 @@ Read the column-specific instructions for detailed execution steps:
 
 ---
 
-## Step 4: Update the Card
+## Step 5: Update the Card
 
-After completing the phase, update `.agentflow/board.json`:
+After completing the phase, use `/af` commands to update the card:
 
-1. Find the card by ID in the `cards` array
-2. Update these fields:
-   - `column`: new column ID
-   - `updatedAt`: current ISO timestamp (e.g., `"2026-01-10T14:30:00Z"`)
-   - `tags`: add `"needs-feedback"` if waiting on human input
-3. Write the updated JSON back to `.agentflow/board.json`
+**Move the card to new column:**
+```
+/af move <id> <new-column>
+```
 
-Also update the History section in the card's markdown file.
+**Add tag if waiting on human input:**
+```
+/af tag <id> add needs-feedback
+```
+
+**Append to card context (requirements, tech design, etc.):**
+```
+/af context <id> append "
+## Section Name
+Content here...
+"
+```
+
+**Update history:**
+```
+/af context <id> history "Phase complete, moved to <column>"
+```
 
 ---
 
-## Step 5: Update Progress Log
+## Step 6: Update Progress Log
 
 After completing the phase, **append** to `.agentflow/progress.txt`:
 
@@ -107,7 +113,7 @@ Keep entries concise. This file helps future iterations skip exploration.
 
 ---
 
-## Step 6: Exit
+## Step 7: Exit
 
 1. Summarize what was done:
    ```
@@ -125,7 +131,7 @@ Keep entries concise. This file helps future iterations skip exploration.
 - **Complete the phase fully** — Don't leave partial work
 - **Move or tag the card** — Card must move forward OR get `needs-feedback` tag
 - **Read the column doc** — Follow the detailed instructions for the phase
-- **Document everything** — Append to the context file before moving
+- **Document everything** — Use `/af context` to update card before moving
 - **Update progress.txt** — Always append to progress log before exiting
 - **Commit your work** — Commits let future iterations see changes via git history
 - **Exit when blocked** — If waiting on human, add tag and exit
@@ -154,7 +160,7 @@ Keep entries concise. This file helps future iterations skip exploration.
 - Is there zero ambiguity about what the user wants?
 - If you're wrong, would it take <5 minutes to fix?
 
-If you can't confidently answer YES to all three, add `needs-feedback` and exit.
+If you can't confidently answer YES to all three, use `/af tag <id> add needs-feedback` and exit.
 
 ---
 
@@ -162,8 +168,8 @@ If you can't confidently answer YES to all three, add `needs-feedback` and exit.
 
 If during implementation you discover the tech design needs significant changes:
 
-1. Document the issue in the card context (Conversation Log)
-2. Add `"needs-feedback"` to the card's `tags` array
+1. Document the issue using `/af context <id> append "..."` (add to Conversation Log)
+2. Run `/af tag <id> add needs-feedback`
 3. Add note explaining what needs revision
 4. Exit and let a human review
 
@@ -189,7 +195,7 @@ If during implementation you discover the tech design needs significant changes:
 - Notes for next iteration
 
 **Cleanup:**
-Don't keep `progress.txt` forever. Delete it when your sprint is done or all cards reach Done. The card files and git history provide permanent records.
+Don't keep `progress.txt` forever. Delete it when your sprint is done or all cards reach Done. The cards and git history provide permanent records.
 
 **Why commits matter:**
 Commit after each phase. This gives future iterations:

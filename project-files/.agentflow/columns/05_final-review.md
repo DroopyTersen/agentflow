@@ -27,9 +27,9 @@ Human has made a decision:
 
 Card arrives from Implementation with code committed.
 
-### Step 1: Review the Card File
+### Step 1: Review the Card
 
-Review the complete card file containing:
+Review the complete card context containing:
 - Original requirements and acceptance criteria
 - Tech design and decision rationale
 - Implementation summary (files changed)
@@ -85,7 +85,7 @@ Optionally perform additional verification:
 
 ---
 
-## Card File Updates
+## Card Context Updates
 
 ### If Approved
 

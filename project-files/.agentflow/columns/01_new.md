@@ -36,9 +36,9 @@ Use `/af add <title>` to create a card:
 3. Select type: feature, bug, or refactor
 4. Set priority: critical, high, medium, or low
 
-### System Creates Card File
+### System Creates Card
 
-Card file is created at `.agentflow/cards/{id}.md` with initial content.
+The card is created with initial content (storage location depends on backend).
 
 ### Human Approval
 
@@ -49,7 +49,7 @@ When ready to start work on a card:
 
 ---
 
-## Card File Template
+## Card Template
 
 ```markdown
 # {Title}
