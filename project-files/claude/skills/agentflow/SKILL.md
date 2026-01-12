@@ -69,7 +69,7 @@ Then present the subagent's summary to the user in a nice format.
 | "I answered the questions on abc123"              | `/af feedback abc123`                             |
 | "move abc123 to done"                             | `/af move abc123 done`                            |
 | "review the code on abc123"                       | `/af review abc123`                               |
-| "start the loop" / "run autonomously"             | Launch background loop, monitor progress (see Autonomous Mode) |
+| "start the loop" / "run autonomously"             | Launch loop directly — NO status check first! (see Autonomous Mode) |
 | "card X depends on Y" / "X is blocked by Y"       | `/af depends X on Y`                              |
 
 ## Quick Reference
@@ -124,15 +124,36 @@ Creates a card in the New column. Will prompt for type (feature/bug/refactor) an
 
 ### Autonomous Mode (Ralph Loop)
 
-Run the Ralph Loop in the background:
+**IMPORTANT: Launch the loop directly. Do NOT run `/af status` first.** The loop checks the board itself — a preliminary status check wastes 1-2 minutes.
 
-**Starting the loop:**
-```
-Use Bash tool with run_in_background: true
-Command: .agentflow/loop.sh 50
+**Two ways to run the loop:**
+
+| Method | When to use |
+|--------|-------------|
+| Terminal | User runs `.agentflow/loop.sh` directly in their terminal |
+| Task agent | Claude runs the loop via Task tool (subagent) |
+
+**From terminal (recommended for long runs):**
+```bash
+.agentflow/loop.sh 50   # User runs this in their terminal
 ```
 
-Save the task_id and tell the user it's running.
+**From within Claude (via Task agent) — launch immediately, no status check:**
+```
+Use Task tool with:
+  subagent_type: "general-purpose"
+  run_in_background: true
+  prompt: |
+    Run the AgentFlow loop. Read .agentflow/RALPH_LOOP_PROMPT.md and execute iterations.
+    For each iteration:
+    1. Run /af list --workable to find cards
+    2. If no workable cards, output AGENTFLOW_NO_WORKABLE_CARDS and stop
+    3. Select highest priority card, run /af work <id>
+    4. After completing the phase, continue to next iteration
+    Max iterations: 50
+```
+
+**Important:** Do NOT use `Bash` with `run_in_background: true` to run `loop.sh`. The bash script spawns `claude` CLI subprocesses which stalls when run from within Claude. Use the Task agent approach instead.
 
 **Loop output files:**
 - `.agentflow/loop_status.txt` — Quick status summary (always small, read this first)
@@ -172,6 +193,8 @@ When the user seems stuck:
 - If cards have `needs-feedback` tag → prompt them to answer questions
 - If cards are in `final-review` → prompt them to approve/reject
 - If no workable cards → explain the board state
+
+**When starting the loop:** Don't run `/af status` first. Just launch the loop directly — it will check the board itself. The preliminary status check wastes time.
 
 ## Full Command Reference
 
