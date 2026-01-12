@@ -25,7 +25,8 @@ Users can speak naturally about their workflow. This skill interprets intent and
 | "I answered the questions on abc123"              | `/af feedback abc123`                             |
 | "move abc123 to done"                             | `/af move abc123 done`                            |
 | "review the code on abc123"                       | `/af review abc123`                               |
-| "start the loop" / "run autonomously"             | `/af loop` (provides backend-specific instructions) |
+| "start the loop" / "run autonomously"             | Launch background loop, monitor progress (see Autonomous Mode) |
+| "card X depends on Y" / "X is blocked by Y"       | `/af depends X on Y`                              |
 
 ## Quick Reference
 
@@ -77,13 +78,36 @@ Creates a card in the New column. Will prompt for type (feature/bug/refactor) an
 /af review ID       # Run code review on a card
 ```
 
-### Autonomous Mode
+### Autonomous Mode (Ralph Loop)
 
-The loop runs externally (not inside Claude):
+Run the Ralph Loop in the background:
 
+**Starting the loop:**
 ```
-/af loop    # Shows instructions for running the external loop
+Use Bash tool with run_in_background: true
+Command: .agentflow/loop.sh 50
 ```
+
+Save the task_id and tell the user it's running.
+
+**When user asks for status** ("how's the loop?", "what's the progress?"):
+1. Check loop output: `TaskOutput(task_id, block=false)`
+2. Read `.agentflow/progress.txt` for completed work
+3. Run `/af status` to see current board state
+4. Summarize for user
+
+**Example response:**
+```
+Ralph Loop Progress:
+✓ #123 Add OAuth: refinement → tech-design
+✓ #124 Fix bug: tech-design → implementation
+🔄 #125 Search: currently in implementation
+
+Loop: Running (iteration 12/50)
+Needs attention: #126 has questions (needs-feedback)
+```
+
+That's it — launch in background, check when asked.
 
 ## Interpreting User Intent
 
