@@ -66,7 +66,8 @@ your-project/
 │       └── code-reviewer.md         # Code review with confidence scoring
 │
 └── .agentflow/
-    ├── board.json                   # Board state (columns + cards)
+    ├── board.json                   # Board state - local backend
+    ├── github.json                  # Board config - GitHub Projects backend (use one or the other)
     ├── loop.sh                      # External loop script (Ralph Wiggum style)
     ├── RALPH_LOOP_PROMPT.md         # Instructions for each loop iteration
     ├── PROJECT_LOOP_PROMPT.md       # ⚙️ PROJECT-SPECIFIC - customize this!
@@ -140,7 +141,7 @@ The loop is an **external bash script** (Ralph Wiggum pattern):
 
 ### What the loop does:
 
-1. Reads `board.json` to find workable cards
+1. Reads board state to find workable cards
 2. Displays next card info in terminal
 3. Pipes `RALPH_LOOP_PROMPT.md` to Claude Code
 4. Claude reads the column-specific instructions (`columns/*.md`)
@@ -373,7 +374,7 @@ Edit `.agentflow/columns/*.md` to change:
 - Use `/af feedback` to respond to pending questions
 
 **Loop exits immediately**
-- Check `board.json` for syntax errors
+- Check backend config for errors (`board.json` or `github.json`)
 - Make sure cards exist and aren't all tagged/blocked
 
 **Cards stuck with `needs-feedback` tag**
