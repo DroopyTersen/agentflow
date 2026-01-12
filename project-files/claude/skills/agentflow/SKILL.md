@@ -21,7 +21,8 @@ Commands like `/af status`, `/af list`, and `/af show` can produce verbose outpu
 
 ```
 Use Task tool with:
-  subagent_type: "haiku"
+  subagent_type: "general-purpose"
+  model: "haiku"
   prompt: |
     Run /af status (or /af list, /af show <id>)
     Return a concise summary:
