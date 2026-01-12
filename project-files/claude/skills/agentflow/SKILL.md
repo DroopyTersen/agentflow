@@ -13,6 +13,42 @@ Please read @.claude/commands/af.md for the complete command reference.
 
 Users can speak naturally about their workflow. This skill interprets intent and invokes the appropriate `/af` command.
 
+## Context Management — Use Subagents
+
+**Important:** Run board queries as subagents to keep the main context clean.
+
+Commands like `/af status`, `/af list`, and `/af show` can produce verbose output (JSON parsing, API calls, full card bodies). Instead of running these directly, delegate to a subagent:
+
+```
+Use Task tool with:
+  subagent_type: "haiku"
+  prompt: |
+    Run /af status (or /af list, /af show <id>)
+    Return a concise summary:
+    - Workable cards (count and top 3)
+    - Cards needing feedback
+    - Cards in final review
+    - Any blockers or issues
+```
+
+Then present the subagent's summary to the user in a nice format.
+
+**Why this matters:**
+- Subagent handles verbose gh CLI output, JSON parsing, etc.
+- Main conversation stays clean — only the summary enters context
+- User gets a nice formatted response without the noise
+
+**When to use subagents:**
+| Command | Use Subagent? |
+|---------|---------------|
+| `/af status` | Yes — can be verbose |
+| `/af list` | Yes — full board listing |
+| `/af show <id>` | Yes — full card body + comments |
+| `/af add` | No — interactive, needs user input |
+| `/af move` | No — simple, quick |
+| `/af tag` | No — simple, quick |
+| `/af depends` | Maybe — if checking multiple predecessors |
+
 ## Common Requests → Commands
 
 | User says...                                      | Invoke                                            |
