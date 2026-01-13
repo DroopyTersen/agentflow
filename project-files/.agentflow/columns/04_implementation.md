@@ -136,7 +136,36 @@ echo "Codex review complete"
 cat .agentflow/codex-review.txt
 ```
 
-#### 6b: Synthesize Suggestions
+#### 6b: Post Reviews to GitHub Issue
+
+Post each review as a separate comment on the card's GitHub issue so the human can review them individually.
+
+**Get the issue number from the card context** (look for the GitHub issue link).
+
+**Post Claude's review:**
+
+```bash
+gh issue comment {ISSUE_NUMBER} --body "## 🟣 Claude Code Review
+
+$(cat << 'EOF'
+{Claude's review output here}
+EOF
+)"
+```
+
+**Post Codex's review:**
+
+```bash
+gh issue comment {ISSUE_NUMBER} --body "## 🟢 Codex Code Review
+
+$(cat .agentflow/codex-review.txt)"
+```
+
+**Labels to distinguish:**
+- 🟣 **Claude** - purple circle
+- 🟢 **Codex** - green circle
+
+#### 6d: Synthesize Suggestions
 
 Collect suggestions from both reviewers. Evaluate each one:
 
@@ -171,7 +200,7 @@ Create a decision list:
 | Add try-catch around X | Claude | Error already handled upstream |
 ```
 
-#### 6c: Implement Valid Suggestions
+#### 6e: Implement Valid Suggestions
 
 Work through the "Will Implement" list:
 
@@ -184,7 +213,7 @@ Work through the "Will Implement" list:
 bun test  # or npm test
 ```
 
-#### 6d: Commit Review Fixes
+#### 6f: Commit Review Fixes
 
 If any fixes were made, create a dedicated commit:
 
