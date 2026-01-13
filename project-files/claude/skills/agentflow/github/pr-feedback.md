@@ -78,7 +78,7 @@ gh pr view PR_NUMBER --json comments --jq '.comments[] | {
 # Fetch and switch to the PR branch
 git fetch origin
 git checkout PR_BRANCH_NAME
-git pull origin PR_BRANCH_NAME
+git pull --rebase origin PR_BRANCH_NAME
 ```
 
 ### 7. Analyze and Address Comments
