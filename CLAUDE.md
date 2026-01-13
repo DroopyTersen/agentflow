@@ -167,6 +167,7 @@ Each iteration:
 /af next             # Work on next available card
 /af feedback <id>    # Respond to needs-feedback card
 /af review <id>      # Run code review on card
+/af pr-feedback <pr> # Address PR review comments (GitHub only)
 /af loop             # Instructions for running loop
 ```
 

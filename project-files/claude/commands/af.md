@@ -40,6 +40,7 @@ if .agentflow/board.json exists → Local JSON backend
 | `/af depends` | `{backend}/workflow.md` |
 | `/af review` | `{backend}/workflow.md` |
 | `/af loop` | `{backend}/workflow.md` |
+| `/af pr-feedback` | `{backend}/pr-feedback.md` (GitHub only) |
 | `/af status` | Use `/af list` logic, summarize |
 
 ## Commands Quick Reference
@@ -58,6 +59,7 @@ if .agentflow/board.json exists → Local JSON backend
 | `/af feedback <id>` | Respond to needs-feedback card |
 | `/af depends <id> [on\|remove] <predecessor>` | Manage dependencies |
 | `/af review <id>` | Run code review |
+| `/af pr-feedback <pr>` | Address PR review comments |
 | `/af loop` | Instructions for external loop |
 
 ## Execution Pattern
