@@ -1,7 +1,7 @@
 # Column: Tech Design
 
 **Actor:** Agent (with optional human feedback loop)
-**Agent:** `code-architect`
+**Agent:** `code-architect` + Codex (dual design)
 **Commit:** Spec commit
 
 ---
@@ -10,19 +10,24 @@
 
 Design the technical approach for implementing the work item. This phase focuses on **how** to build it. The goal is to resolve all technical unknowns and create a plan detailed enough that implementation is mostly execution.
 
-### Default Behavior: Research Three Approaches
+### Default Behavior: Research Four Approaches (Dual Design)
 
-**For most work items, research and present THREE approaches:**
+**For most work items, research and present FOUR approaches from two sources:**
 
-1. **Minimal** — The smallest change that solves the problem. Quick to implement, but may cut corners or accumulate tech debt. Good for time-sensitive fixes.
+**From Claude (3 approaches):**
+1. 🟣 **Minimal** — The smallest change that solves the problem. Quick to implement, but may cut corners or accumulate tech debt. Good for time-sensitive fixes.
 
-2. **Idealistic** — The "right" way if we had unlimited time. Clean architecture, full test coverage, handles all edge cases. May be over-engineered for the actual need.
+2. 🟣 **Idealistic** — The "right" way if we had unlimited time. Clean architecture, full test coverage, handles all edge cases. May be over-engineered for the actual need.
 
-3. **Pragmatic** — A balanced middle ground. Addresses the core problem well, maintainable code, reasonable scope. Often the best choice.
+3. 🟣 **Pragmatic** — A balanced middle ground. Addresses the core problem well, maintainable code, reasonable scope. Often the best choice.
+
+**From Codex (1 approach):**
+4. 🟢 **Codex Design** — Independent architecture proposal from OpenAI Codex. May offer novel perspectives or catch things Claude missed.
 
 **Then get human feedback:**
-- Compare and contrast the approaches
+- Compare and contrast all four approaches
 - Explain trade-offs (time, complexity, maintainability, risk)
+- Note unique insights from each source
 - Make a recommendation with rationale
 - Ask the human which approach (or blend) to use
 - Add `needs-feedback` tag and exit
@@ -45,8 +50,10 @@ When in doubt, research the approaches and ask. A 5-minute pause for human input
 
 ## Definition of Done
 
+- Dual design completed (Claude + Codex)
+- Four approaches presented with clear source attribution (🟣 Claude / 🟢 Codex)
 - Technical approach documented with rationale
-- Decision section (if multiple approaches considered)
+- Decision section including which source was selected
 - Files to create/modify listed
 - Verification steps specified (specific commands)
 - All unknowns resolved
@@ -70,7 +77,44 @@ Review the Refinement section for:
 
 ### Step 2: Launch Architecture Agents (in parallel)
 
-Launch 2-3 code-architect agents **in parallel**, each with a different focus:
+Launch Claude code-architect agents **and** Codex **in parallel**. Four independent perspectives: three from Claude (with different focuses) and one from Codex.
+
+#### 2a: Start Codex Design (runs in background)
+
+```bash
+# Get context for Codex
+REFINEMENT=$(cat << 'EOF'
+{Refinement section from card}
+EOF
+)
+
+codex exec "You are a software architect. Design an implementation approach for this task.
+
+Task: {card.title}
+
+Requirements:
+$REFINEMENT
+
+Provide a complete architecture design including:
+1. Overview (2-3 sentences)
+2. Files to create (table: file path, purpose)
+3. Files to modify (table: file path, changes)
+4. Key design decisions with rationale
+5. Code sketch (key interfaces/signatures)
+6. Trade-offs analysis (dev time, risk, maintainability, testability)
+7. Implementation sequence (numbered steps)
+
+Be specific about file paths. Show actual code sketches.
+Format as markdown." \
+  --full-auto \
+  --output-last-message .agentflow/codex-architecture.txt \
+  --sandbox read-only &
+
+CODEX_PID=$!
+echo "Codex architecture design started (PID: $CODEX_PID)"
+```
+
+#### 2b: Launch Claude Architect Agents (in parallel)
 
 ```
 # Agent 1: Minimal Changes
@@ -102,36 +146,54 @@ Agent("code-architect")
 > Accept trade-offs: may not be perfect, but good enough and sustainable.
 ```
 
-Each agent will independently:
+#### 2c: Wait for Codex
+
+```bash
+wait $CODEX_PID
+echo "Codex architecture design complete"
+cat .agentflow/codex-architecture.txt
+```
+
+Each source (3 Claude agents + Codex) will independently:
 - Analyze the problem through their specific lens
 - Design an implementation approach
 - List files to create/modify
 - Identify risks and trade-offs
 
-### Step 2b: Review and Synthesize
+### Step 2d: Review and Synthesize
 
-After all agents complete:
+After all four designs complete:
 
-1. **Review all approaches** — read each agent's output
+1. **Review all approaches** — read each agent's output (including Codex)
 2. **Form your opinion** — which fits best for THIS specific task? Consider:
    - Is this a small fix or large feature?
    - How urgent is it?
    - How complex is the problem?
    - What's the project's current state (early vs mature)?
 3. **Note concrete differences** — where do the approaches actually diverge in implementation?
+4. **Note Codex insights** — did Codex suggest anything the Claude agents missed?
 
 ### Step 3: Present Approaches for Human Feedback (Default)
 
 **Default behavior — present to user and get feedback:**
 
 1. **Brief summary of each approach** — 2-3 sentences capturing the essence
-2. **Trade-offs comparison** — table or bullet list comparing key dimensions
+   - Approach 1: Minimal (Claude)
+   - Approach 2: Clean Architecture (Claude)
+   - Approach 3: Pragmatic (Claude)
+   - Approach 4: Codex Design (🟢 clearly labeled as from Codex)
+2. **Trade-offs comparison** — table or bullet list comparing key dimensions (all 4 approaches)
 3. **Concrete implementation differences** — where do the approaches actually diverge?
    - Different files touched?
    - Different abstractions created?
    - Different levels of test coverage?
 4. **Your recommendation with reasoning** — which approach fits THIS task and WHY
 5. **Ask the user** which approach they prefer (or what blend)
+
+**Important: Codex Attribution**
+- Always label Codex's approach with 🟢 to distinguish it from Claude's approaches
+- In the comparison table, mark the Source column (Claude vs Codex)
+- When storing the final design, record which source was selected
 
 Then:
 - Post approaches to card **discussion** (not body — see backend docs)
@@ -248,38 +310,50 @@ Examples:
 ```
 Agent (YYYY-MM-DD): Tech Design Options
 
-I've analyzed three approaches for this work item.
+I've analyzed four approaches for this work item (3 from Claude + 1 from Codex).
 
-## Approach 1: Minimal
+## 🟣 Approach 1: Minimal (Claude)
 {The smallest change that solves the problem}
 - **Pros:** Quick to implement, low risk
 - **Cons:** May accumulate tech debt
 - **Complexity:** Low | **Risk:** Low
 
-## Approach 2: Clean Architecture
+## 🟣 Approach 2: Clean Architecture (Claude)
 {The "right" way if we had unlimited time}
 - **Pros:** Handles all edge cases, easy to extend
 - **Cons:** Significant effort, may be over-engineered
 - **Complexity:** High | **Risk:** Medium
 
-## Approach 3: Pragmatic
+## 🟣 Approach 3: Pragmatic (Claude)
 {Balanced middle ground}
 - **Pros:** Addresses core problem well, maintainable
 - **Cons:** {trade-off}
 - **Complexity:** Medium | **Risk:** Low
 
+## 🟢 Approach 4: Codex Design
+{Codex's independent architecture proposal}
+- **Pros:** {from Codex output}
+- **Cons:** {from Codex output}
+- **Complexity:** {assessment} | **Risk:** {assessment}
+
 ## Comparison
-| Aspect | Minimal | Clean | Pragmatic |
-|--------|---------|-------|-----------|
-| Effort | Low | High | Medium |
-| Maintainability | Fair | Excellent | Good |
-| Edge cases | Partial | Full | Most |
+| Aspect | 🟣 Minimal | 🟣 Clean | 🟣 Pragmatic | 🟢 Codex |
+|--------|------------|----------|--------------|----------|
+| Source | Claude | Claude | Claude | Codex |
+| Effort | Low | High | Medium | {assess} |
+| Maintainability | Fair | Excellent | Good | {assess} |
+| Edge cases | Partial | Full | Most | {assess} |
+| Unique insights | - | - | - | {any novel ideas?} |
 
 ## Recommendation
-I recommend **Approach {N}** because {reasoning specific to this task}.
+I recommend **Approach {N}** ({source}) because {reasoning specific to this task}.
 
 Which approach would you prefer? Or a blend?
 ```
+
+**Attribution labels:**
+- 🟣 **Claude** - purple circle for Claude's approaches
+- 🟢 **Codex** - green circle for Codex's approach
 
 **Do NOT update card body.** Proposed approaches belong in discussion until human selects one.
 
@@ -290,7 +364,7 @@ Which approach would you prefer? Or a blend?
 
 ## Tech Design
 **Date:** {YYYY-MM-DD}
-**Agent:** code-architect
+**Agent:** code-architect + Codex
 **Status:** Complete
 
 ### Requirements Summary
@@ -302,11 +376,12 @@ Which approach would you prefer? Or a blend?
 
 ### Decision
 **Approaches Considered:**
-1. **Minimal** — {brief summary}
-2. **Idealistic** — {brief summary}
-3. **Pragmatic** — {brief summary}
+1. 🟣 **Minimal** (Claude) — {brief summary}
+2. 🟣 **Clean Architecture** (Claude) — {brief summary}
+3. 🟣 **Pragmatic** (Claude) — {brief summary}
+4. 🟢 **Codex Design** — {brief summary}
 
-**Selected:** {Name} (or blend: "{description}")
+**Selected:** {Name} (Source: {Claude|Codex}) (or blend: "{description}")
 
 **Rationale:** {Why this approach was chosen, including human's input}
 
@@ -372,12 +447,36 @@ Which approach would you prefer? Or a blend?
 
 ## Exit Criteria
 
-- Technical design documented
+- Dual design completed (Claude + Codex)
+- Technical design documented with source attribution
 - Human approved approach (if feedback was needed)
-- Decision section included (if multiple approaches considered)
+- Decision section included with selected source (🟣 Claude or 🟢 Codex)
 - Verification steps specified
 - Spec committed
 - Card moved to `implementation`
+
+---
+
+## Dual Design Philosophy
+
+Two sources provide independent perspectives. Focus is on **finding the best approach**, not on which source wins.
+
+**Why dual design?**
+- Different models approach problems differently
+- Codex may suggest patterns Claude wouldn't consider
+- Independent analysis reduces blind spots
+- Cross-checking validates good ideas
+
+**What to look for in Codex's design:**
+- Novel architectural patterns
+- Different file organization
+- Alternative abstractions
+- Unique trade-off analysis
+
+**Attribution matters:**
+- 🟣 Purple = Claude's approaches
+- 🟢 Green = Codex's approach
+- Recording the source helps evaluate which model provides better architecture advice over time
 
 ---
 
@@ -388,6 +487,7 @@ Which approach would you prefer? Or a blend?
 - **Be specific about verification** - vague plans lead to skipped verification
 - **Junior developer test:** If a junior couldn't execute this plan, add more detail
 - **Document the decision** - future readers should understand why
+- **Always attribute the source** - helps track which model provides better architecture advice
 
 ---
 
