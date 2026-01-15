@@ -10,6 +10,10 @@
 
 Design the technical approach for implementing the work item. This phase focuses on **how** to build it. The goal is to resolve all technical unknowns and create a plan detailed enough that implementation is mostly execution.
 
+**⚠️ THIS PHASE IS NEVER SKIPPED**
+
+Every card must go through tech-design, even trivial bugs. The question is only whether you need human approval before moving to implementation.
+
 ### Default Behavior: Research Four Approaches (Dual Design)
 
 **For most work items, research and present FOUR approaches from two sources:**
@@ -34,7 +38,9 @@ Design the technical approach for implementing the work item. This phase focuses
 
 ### When to Skip Multi-Approach Analysis
 
-Only proceed without presenting approaches if ALL of these are true:
+**⚠️ "Skip multi-approach analysis" ≠ "Skip tech-design phase"**
+
+You may proceed without presenting approaches if ALL of these are true:
 - It's a small bug fix with an obvious, single-line or trivial fix
 - There is genuinely only ONE reasonable approach (not three)
 - No architectural decisions, new patterns, or design choices involved
@@ -45,6 +51,17 @@ Only proceed without presenting approaches if ALL of these are true:
 **For refactors**: Always present three approaches.
 
 When in doubt, research the approaches and ask. A 5-minute pause for human input beats hours of rework.
+
+**"Skip multi-approach analysis" means:**
+- ✅ Document the single obvious approach and move to implementation (without `needs-feedback` tag)
+- ❌ It does NOT mean skip tech-design entirely
+- ❌ It does NOT mean jump straight to final-review
+
+**Even a trivial single-line bug fix:**
+1. Gets a tech-design entry documenting the fix approach
+2. Gets a spec commit
+3. Moves to implementation (next iteration)
+4. Then gets implemented (separate iteration)
 
 ---
 
