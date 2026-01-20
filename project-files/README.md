@@ -10,7 +10,7 @@ Copy both directories to your project root:
 
 ```
 your-project/
-├── .claude/          ← Copy this (rename from claude/)
+├── .claude/          ← Copy this
 ├── .agentflow/       ← Copy this
 └── (your code)
 ```
@@ -53,35 +53,38 @@ claude
 
 ```
 your-project/
-├── .claude/
-│   ├── settings.json                # Permissions for Claude
+├── .claude/                         # Claude Code thin wrappers
 │   ├── commands/
-│   │   └── af.md                    # /af commands (add, list, work, etc.)
-│   ├── skills/
-│   │   └── agentflow/
-│   │       └── SKILL.md             # Core workflow knowledge
+│   │   ├── af.md                    # Dispatcher (routes to .agentflow/)
+│   │   ├── af-setup-github.md       # GitHub backend setup
+│   │   └── af-setup-json.md         # JSON backend setup
 │   └── agents/
-│       ├── code-explorer.md         # Codebase reconnaissance
-│       ├── code-architect.md        # Architecture design (3 approaches)
-│       └── code-reviewer.md         # Code review with confidence scoring
+│       ├── code-explorer.md         # References .agentflow/prompts/
+│       ├── code-architect.md        # References .agentflow/prompts/
+│       └── code-reviewer.md         # References .agentflow/prompts/
 │
-└── .agentflow/
-    ├── board.json                   # Board state - local backend
-    ├── github.json                  # Board config - GitHub Projects backend (use one or the other)
+└── .agentflow/                      # Centralized content (tool-agnostic)
+    ├── core.md                      # Shared concepts (columns, tags, priorities)
+    ├── github/                      # GitHub Projects backend
+    │   ├── add.md, list.md, show.md, move.md, etc.
+    │   └── README.md
+    ├── json/                        # Local JSON backend
+    │   ├── add.md, list.md, show.md, move.md, etc.
+    │   └── README.md
+    ├── prompts/                     # Composable agent prompts
+    │   ├── code-explorer.md
+    │   ├── code-architect.md
+    │   ├── code-reviewer.md
+    │   ├── af-setup-github.md
+    │   ├── af-setup-json.md
+    │   └── af-final-review.md
+    ├── columns/                     # Phase-specific instructions
+    │   ├── 01_new.md ... 06_done.md
     ├── loop.sh                      # External loop script (Ralph Wiggum style)
     ├── RALPH_LOOP_PROMPT.md         # Instructions for each loop iteration
     ├── PROJECT_LOOP_PROMPT.md       # ⚙️ PROJECT-SPECIFIC - customize this!
-    ├── ralph.md                     # Loop architecture documentation
-    ├── progress.txt                 # Session memory (created during loop)
-    ├── .gitignore                   # Ignore temp files
-    ├── columns/                     # Column-specific execution instructions
-    │   ├── 01_new.md
-    │   ├── 01b_approved.md
-    │   ├── 02_refinement.md
-    │   ├── 03_tech-design.md
-    │   ├── 04_implementation.md
-    │   ├── 05_final-review.md
-    │   └── 06_done.md
+    ├── board.json                   # Board state (JSON backend)
+    ├── github.json                  # Board config (GitHub backend)
     └── cards/                       # Card context files
         └── {card-id}.md
 ```
@@ -335,7 +338,7 @@ This is the most important file to customize:
 
 ### Agent Behavior
 
-Edit files in `.claude/agents/` to customize:
+Edit files in `.agentflow/prompts/` to customize:
 - What questions the explorer asks
 - How the architect evaluates approaches
 - What the reviewer checks for
@@ -384,8 +387,8 @@ Edit `.agentflow/columns/*.md` to change:
 **Claude doesn't follow the workflow**
 - Check `.agentflow/RALPH_LOOP_PROMPT.md` is present
 - Check `.agentflow/columns/*.md` files exist
-- Verify `.claude/skills/agentflow/SKILL.md` exists
+- Verify `.agentflow/core.md` exists
 
 **Agent not found**
 - Ensure `.claude/agents/*.md` files are present
-- Check settings.json has `Agent` permission
+- Verify `.agentflow/prompts/*.md` files exist

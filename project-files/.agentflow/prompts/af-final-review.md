@@ -1,8 +1,3 @@
----
-description: Verify AgentFlow Final Review cards with code review and UI testing
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, TodoWrite, mcp__claude-in-chrome__*
----
-
 # AgentFlow Final Review Verification
 
 Verify all cards in "Final Review" status through automated tests, code review, and live UI testing. Post verification results as comments on each GitHub issue.
@@ -19,8 +14,8 @@ Verify all cards in "Final Review" status through automated tests, code review, 
 
 Run `/af list` or:
 ```bash
-gh project item-list <PROJECT> --owner <OWNER> --format json | \
-  jq '.items[] | select(.status == "Final Review")'
+gh project item-list <PROJECT> --owner <OWNER> --limit 100 --format json | \
+  jq '[.items[] | select(.content.number != null)] | .[] | select(.status == "Final Review")'
 ```
 
 For each card, fetch details including branch name:
@@ -42,8 +37,8 @@ Use TodoWrite to track progress. Order by complexity:
 
 **Ensure .env exists** (needed for AI players, API calls):
 ```bash
-# If missing, copy from sibling project
-[ -f .env ] || cp ../mayi/.env .env
+# If missing, copy from sibling project or create
+[ -f .env ] || echo "Create .env with required API keys"
 ```
 
 **Dev server management:**
@@ -55,7 +50,7 @@ lsof -i :5173
 bun run dev &
 
 # If running on wrong branch, restart after checkout
-pkill -f "react-router" && sleep 1 && bun run dev &
+pkill -f "vite" && sleep 1 && bun run dev &
 ```
 
 **Note:** Dev server has hot reload — for most changes, you don't need to restart after switching branches. Only restart if:
@@ -79,15 +74,13 @@ bun run typecheck
 # Run tests (note the count!)
 bun test
 
-# Check for new tests (compare to baseline ~2034)
+# Check for new tests (compare to baseline)
 # More tests = implementation added test coverage
 ```
 
-#### 4c. Dual Code Review (Claude + Codex)
+#### 4c. Code Review
 
-Run both Claude's code-reviewer agent and OpenAI Codex in parallel. Two independent reviewers catch more issues than one.
-
-**First, get the diff context:**
+Get the diff context:
 ```bash
 BRANCH=$(git branch --show-current)
 FILES_CHANGED=$(git diff --name-only main..HEAD | tr '\n' ', ')
@@ -95,102 +88,32 @@ echo "Branch: $BRANCH"
 echo "Files: $FILES_CHANGED"
 ```
 
-**Start Codex review (runs in background):**
-
-```bash
-codex exec "You are a senior code reviewer. Review the changes on branch '$BRANCH' compared to main.
-
-Files changed: $FILES_CHANGED
-
-Think like a seasoned engineer. For every potential issue:
-- Tug on the thread: trace ripple effects and dependencies
-- Play devil's advocate: try to disprove your concern before reporting
-- Only surface high-confidence, fully vetted suggestions
-
-Focus on:
-1. Bugs and logic errors
-2. Security vulnerabilities
-3. Missing error handling
-4. SOLID violations (monolithic components, duplicated logic, mixed concerns)
-5. Existing abstractions that should be used instead of new code
-
-For each issue provide:
-- Reasoning: detailed exploration with file/line references
-- Conclusion: concrete fix recommendation
-
-Skip style preferences and speculative suggestions." \
-  --full-auto \
-  --output-last-message .agentflow/codex-review.txt \
-  --sandbox read-only &
-
-CODEX_PID=$!
-echo "Codex review started (PID: $CODEX_PID)"
+Run code-reviewer agent:
 ```
-
-**Run Claude code-reviewer agent:**
-
-```
-Task(subagent_type="feature-dev:code-reviewer")
+Task(subagent_type="code-reviewer")
 > Review the changes on this branch compared to main.
 > Branch: {branch}
 > Files changed: {files}
 > Card: #{issue_number} - {title}
 ```
 
-**Wait for Codex to complete:**
+Verify:
+- Implementation matches issue requirements
+- Code follows project patterns
+- No obvious bugs or regressions
 
-```bash
-wait $CODEX_PID
-echo "Codex review complete"
-```
+#### 4d. UI Testing (if applicable)
 
-**Post both reviews to GitHub issue:**
-
-```bash
-# Post Claude's review
-gh issue comment <NUMBER> --body "## 🟣 Claude Code Review
-
-{Claude's review output}"
-
-# Post Codex's review
-gh issue comment <NUMBER> --body "## 🟢 Codex Code Review
-
-$(cat .agentflow/codex-review.txt)"
-```
-
-**Synthesize suggestions:**
-
-Evaluate each suggestion from both reviewers:
-
-| Signal | Action |
-|--------|--------|
-| Both reviewers found it | High confidence - note it |
-| Clear bug/security issue | Valid regardless of source |
-| Style preference only | Skip |
-| Speculative/low-confidence | Skip |
-
-Document synthesis in your verification comment.
-
-#### 4d. UI Testing with Claude Chrome
-
-**Get browser context:**
-```
-mcp__claude-in-chrome__tabs_context_mcp
-```
-
-**For component fixes — use Storybook:**
+**For component fixes — use Storybook (if available):**
 ```
 Navigate to: http://localhost:5173/storybook/<component-name>
 ```
 Take screenshot, verify the fix visually.
 
-**For game flow fixes — start a new game:**
-1. Navigate to `http://localhost:5173/`
-2. Click "Create New Game"
-3. Enter name, join game
-4. Add 2 AI players (click "Add AI Player" twice)
-5. Scroll down, click "Start Game"
-6. Wait for AI turns or take manual actions to test the fix
+**For app flow fixes — manual testing:**
+1. Navigate to the relevant page
+2. Perform actions that exercise the fix
+3. Verify expected behavior
 
 **What to verify per fix type:**
 - **Display fixes:** Screenshot shows correct rendering
@@ -205,10 +128,10 @@ gh issue comment <NUMBER> --body "**Agent Verification ($(date +%Y-%m-%d)):**
 
 ## Verification Results
 
-### Dual Code Review (Claude + Codex)
-- 🟣 Claude: [X suggestions - see comment above]
-- 🟢 Codex: [Y suggestions - see comment above]
-- **Synthesis:** [N high-confidence issues found / No significant issues]
+### Code Review
+- ✅ Implementation matches requirements
+- ✅ Changes are minimal and focused
+- Files changed: \`file1.ts\`, \`file2.ts\`
 
 ### Test Results
 - ✅ Type check: Pass
@@ -216,7 +139,7 @@ gh issue comment <NUMBER> --body "**Agent Verification ($(date +%Y-%m-%d)):**
 - ✅ Build: Success
 
 ### UI Verification
-- ✅ Tested via [storybook/game UI]
+- ✅ Tested via [storybook/manual testing]
 - ✅ [Specific observation about the fix working]
 
 ### Commit
@@ -240,14 +163,10 @@ lsof -i :5173  # Check what's using port
 kill -9 <PID>  # Kill it
 ```
 
-**AI players stuck on "thinking":**
-- Check .env has valid API keys
-- Check server logs for API errors
-- Can still test UI elements that don't require AI turns
-
-**WebSocket shows "Connecting..." forever:**
-- Restart dev server
-- Refresh the browser page
+**Tests failing unexpectedly:**
+- Ensure you're on the correct branch
+- Run `bun install` to update dependencies
+- Check if tests require specific environment variables
 
 ## Summary Output
 

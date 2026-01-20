@@ -51,10 +51,18 @@ fi
 
 ### List Project Items
 ```bash
-gh project item-list $PROJECT --owner $OWNER --format json
-# Returns: { "items": [...] }
+# IMPORTANT: Use --limit 100 to include items without status (newly added)
+gh project item-list $PROJECT --owner $OWNER --limit 100 --format json | \
+  jq '[.items[] | select(.content.number != null)] | sort_by(-.content.number)'
+# Returns array of items sorted by issue number (newest first)
 # Each item has: id, title, status, labels[], content.number, content.body, etc.
 ```
+
+**Why `--limit 100`?** Newly added items have NO status initially and may not appear in default queries. Always use `--limit 100` to ensure you get all items.
+
+**Why filter null content?** Deleted issues leave orphaned project items with null content. Filter them out.
+
+**Why sort by number?** Sorting by issue number descending shows newest items first, which is usually what you want.
 
 ## Performance — Avoid N+1 Queries
 
@@ -87,8 +95,8 @@ The project item-list includes issue body, labels, and all metadata. Use it.
 
 ### Get Item ID for Issue
 ```bash
-ITEM_ID=$(gh project item-list $PROJECT --owner $OWNER --format json | \
-  jq -r '.items[] | select(.content.number == NUMBER) | .id')
+ITEM_ID=$(gh project item-list $PROJECT --owner $OWNER --limit 100 --format json | \
+  jq -r '[.items[] | select(.content.number != null)] | .[] | select(.content.number == NUMBER) | .id')
 ```
 
 ### Update Item Status (Move Card)

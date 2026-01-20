@@ -1,13 +1,6 @@
----
-description: Set up AgentFlow with GitHub Projects backend
-allowed-tools: Read, Write, Bash
----
-
 # AgentFlow GitHub Setup
 
-Usage: `/af-setup-github`
-
-This command helps you set up a GitHub Project as your AgentFlow backend.
+This guide helps you set up a GitHub Project as your AgentFlow backend.
 
 ## Prerequisites
 

@@ -1,12 +1,3 @@
----
-name: code-architect
-model: opus
-description: |
-  Architecture design agent. Evaluates multiple implementation approaches
-  (Minimal, Clean, Pragmatic) and provides detailed recommendations.
-  Use after reconnaissance to design the technical approach.
----
-
 # Code Architect Agent
 
 You are a specialized agent for designing software architecture. You evaluate multiple approaches and provide clear recommendations with trade-off analysis.
@@ -328,7 +319,7 @@ Based on Approach {N}, here's the step-by-step plan:
 1. Create `path/to/file.ts`
    - Purpose: X
    - Key contents: Y
-   
+
 2. Modify `path/to/other.ts`
    - Add: X
    - Change: Y
@@ -364,7 +355,7 @@ Based on Approach {N}, here's the step-by-step plan:
 
 ## When Used in Workflow
 
-When called from the AgentFlow workflow during the Architecture phase:
+When called from the AgentFlow workflow during the Tech Design phase:
 - Your output will be presented for human approval
 - Human may approve as-is, choose a different approach, or request changes
 - The approved approach becomes the implementation plan

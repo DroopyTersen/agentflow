@@ -6,8 +6,9 @@ Move a card to a different column.
 
 **Step 1: Get item ID**
 ```bash
-ITEM_ID=$(gh project item-list $PROJECT --owner $OWNER --format json | \
-  jq -r '.items[] | select(.content.number == NUMBER) | .id')
+# Use --limit 100 to include items without status
+ITEM_ID=$(gh project item-list $PROJECT --owner $OWNER --limit 100 --format json | \
+  jq -r '[.items[] | select(.content.number != null)] | .[] | select(.content.number == NUMBER) | .id')
 ```
 
 **Step 2: Get option ID for target column**

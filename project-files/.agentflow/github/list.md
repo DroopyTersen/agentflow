@@ -6,12 +6,20 @@ List all cards grouped by column.
 
 ```bash
 # Get all project items - ONE API call
-gh project item-list $PROJECT --owner $OWNER --format json
+# Use --limit 100 to include items without status (newly added items)
+gh project item-list $PROJECT --owner $OWNER --limit 100 --format json | \
+  jq '[.items[] | select(.content.number != null)] | sort_by(-.content.number)'
 ```
 
 Parse the JSON and group by status field. The project item-list response includes `content.body` for each issue, so you have everything in one response.
 
-**IMPORTANT:** Do NOT loop through issues with individual `gh issue view` calls. That's slow (N+1 queries). Use the data from the single project item-list call.
+**IMPORTANT:**
+- Do NOT loop through issues with individual `gh issue view` calls. That's slow (N+1 queries). Use the data from the single project item-list call.
+- Use `--limit 100` because newly added items may not have a status yet
+- Filter out items with null content (deleted issues)
+- Sort by issue number descending (newest first)
+
+**Tip:** To exclude old Done items from the list, add `| map(select(.status != "Done"))` to the jq filter.
 
 ## Flags
 

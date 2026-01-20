@@ -45,12 +45,19 @@ gh project item-add $PROJECT --owner $OWNER --url {ISSUE_URL}
 ```
 
 **Step 5: Get item ID**
+
+**IMPORTANT:** Newly added items have NO status initially. Use `--limit 100` to ensure all items are returned:
+
 ```bash
-ITEM_ID=$(gh project item-list $PROJECT --owner $OWNER --format json | \
-  jq -r '.items[] | select(.content.number == NUMBER) | .id')
+ITEM_ID=$(gh project item-list $PROJECT --owner $OWNER --limit 100 --format json | \
+  jq -r '[.items[] | select(.content.number != null)] | .[] | select(.content.number == NUMBER) | .id')
 ```
 
-**Step 6: Set status to New**
+If ITEM_ID is empty, the item may not have been added. Retry step 4 and check again.
+
+**Step 6: Set status to New (REQUIRED)**
+
+**CRITICAL:** You MUST set the status immediately after adding. Items without status appear in "No Status" column and won't show up in filtered queries.
 ```bash
 gh project item-edit \
   --project-id $PROJECT_ID \

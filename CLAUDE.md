@@ -26,35 +26,36 @@ agentflow/
 ├── README.md                    # Project overview and philosophy
 ├── CLAUDE.md                    # This file
 └── project-files/               # COPY THESE INTO TARGET PROJECTS
-    ├── .agentflow/              # Workflow state and config
-    │   ├── board.json           # Kanban board state (cards, columns)
-    │   ├── cards/               # Card context files (*.md)
+    ├── .agentflow/              # Centralized workflow content (tool-agnostic)
+    │   ├── core.md              # Shared concepts (columns, tags, priorities)
+    │   ├── github/              # GitHub Projects backend commands
+    │   │   ├── add.md, list.md, show.md, move.md, etc.
+    │   │   └── README.md
+    │   ├── json/                # Local JSON backend commands
+    │   │   ├── add.md, list.md, show.md, move.md, etc.
+    │   │   └── README.md
+    │   ├── prompts/             # Composable agent prompts
+    │   │   ├── code-explorer.md
+    │   │   ├── code-architect.md
+    │   │   ├── code-reviewer.md
+    │   │   ├── af-setup-github.md
+    │   │   ├── af-setup-json.md
+    │   │   └── af-final-review.md
     │   ├── columns/             # Phase-specific instructions
-    │   │   ├── 01_new.md
-    │   │   ├── 02_refinement.md
-    │   │   ├── 03_tech-design.md
-    │   │   ├── 04_implementation.md
-    │   │   ├── 05_human-review.md
-    │   │   └── 06_done.md
+    │   │   ├── 01_new.md ... 07_done.md
     │   ├── loop.sh              # External bash loop script
     │   ├── RALPH_LOOP_PROMPT.md # Instructions for each loop iteration
-    │   ├── PROJECT_LOOP_PROMPT.md # Project-specific customization
-    │   ├── ralph.md             # Loop architecture documentation
-    │   └── progress.txt         # Session memory (append-only log)
-    └── claude/                  # Claude Code configuration
-        ├── settings.json        # Tool permissions
-        ├── agents/              # Specialized sub-agents
+    │   └── PROJECT_LOOP_PROMPT.md # Project-specific customization
+    └── .claude/                 # Claude Code thin wrappers
+        ├── agents/              # ~9-line wrappers referencing .agentflow/prompts/
         │   ├── code-explorer.md
         │   ├── code-architect.md
         │   └── code-reviewer.md
-        ├── commands/
-        │   └── af.md            # /af command reference
-        └── skills/
-            └── agentflow/
-                └── SKILL.md     # Natural language interface
+        └── commands/
+            └── af.md            # ~65-line dispatcher to .agentflow/
 ```
 
-## The 6-Column Workflow
+## The 7-Column Workflow
 
 ```
 NEW → APPROVED → REFINEMENT → TECH-DESIGN → IMPLEMENTATION → FINAL-REVIEW → DONE
@@ -98,12 +99,12 @@ All edits here are to AgentFlow itself. Key areas:
 
 | What to Change | Where |
 |----------------|-------|
-| Workflow logic | `project-files/claude/commands/af.md` |
-| Loop behavior | `project-files/.agentflow/RALPH_LOOP_PROMPT.md` |
+| Dispatcher logic | `project-files/.claude/commands/af.md` |
+| Backend commands | `project-files/.agentflow/github/*.md` or `json/*.md` |
+| Shared concepts | `project-files/.agentflow/core.md` |
+| Agent prompts | `project-files/.agentflow/prompts/*.md` |
 | Phase instructions | `project-files/.agentflow/columns/*.md` |
-| Agent prompts | `project-files/claude/agents/*.md` |
-| Board schema | `project-files/.agentflow/board.json` |
-| Skill interface | `project-files/claude/skills/agentflow/SKILL.md` |
+| Loop behavior | `project-files/.agentflow/RALPH_LOOP_PROMPT.md` |
 
 ## Deploying to a Project
 

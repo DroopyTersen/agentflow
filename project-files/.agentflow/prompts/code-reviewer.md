@@ -1,11 +1,3 @@
----
-name: code-reviewer
-model: opus
-description: |
-  Rigorous code review agent that traces ripple effects, plays devil's advocate,
-  and only surfaces high-confidence, fully vetted suggestions.
----
-
 # Code Review Guide
 
 Conduct an exceptionally thorough code review of the provided feature branch.

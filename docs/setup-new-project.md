@@ -5,7 +5,7 @@ This guide walks through setting up AgentFlow in a target project directory.
 ## Prerequisites
 
 - Target project is a git repository
-- Claude Code CLI installed
+- Claude Code CLI installed (or OpenAI Codex CLI — see [Codex Compatibility](codex-compatibility.md))
 - (Optional) GitHub CLI (`gh`) installed if using GitHub backend
 
 ---
@@ -298,3 +298,29 @@ The `mayi` project uses AgentFlow with the GitHub backend. Key customizations:
 - `.claude/commands/never-stop.md` — project-specific command
 
 This shows how your project will naturally accumulate customizations while still benefiting from AgentFlow updates.
+
+---
+
+## OpenAI Codex CLI Support
+
+AgentFlow is also compatible with OpenAI Codex CLI. For dual-CLI setup:
+
+```bash
+# Create AGENTS.md symlink (Codex reads this instead of CLAUDE.md)
+ln -s CLAUDE.md AGENTS.md
+
+# Create Codex skills directory
+mkdir -p .codex/skills
+ln -s ../../.claude/skills/agentflow .codex/skills/agentflow
+
+# Run Codex version of the loop
+.agentflow/loop-codex.sh
+```
+
+For full details including:
+- Converting Claude agents to Codex skills
+- Setting up `/prompts:af` commands
+- Running the Ralph loop with `codex exec`
+- Testing and validation
+
+See **[Codex Compatibility Guide](codex-compatibility.md)**.

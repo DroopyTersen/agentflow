@@ -89,12 +89,12 @@ _Geoffrey Huntley's autonomous loop pattern for Claude Code_
 
 | Component                 | Description                                                                                    |
 | ------------------------- | ---------------------------------------------------------------------------------------------- |
-| **8-column Kanban board** | Backlog → Recon → Questions → Architecture → Arch Review → Implementation → Code Review → Done |
+| **7-column Kanban board** | New → Approved → Refinement → Tech Design → Implementation → Final Review → Done               |
 | **3 specialized agents**  | `code-explorer`, `code-architect`, `code-reviewer`                                             |
 | **External loop script**  | `loop.sh` runs Claude iteratively until blocked                                                |
-| **File-based state**      | `board.json` for cards, `cards/*.md` for context                                               |
-| **Human checkpoints**     | Questions, Architecture Review, Code Review require human action                               |
-| **Project customization** | `CLAUDE.md` for project-specific instructions                                                  |
+| **File-based state**      | GitHub Projects or local `board.json` for cards                                                |
+| **Human checkpoints**     | Approved, Tech Design, Final Review require human action                                       |
+| **Project customization** | `PROJECT_LOOP_PROMPT.md` for project-specific instructions                                     |
 | **CLI commands**          | `/af add`, `/af list`, `/af status`, `/af work`, etc.                                          |
 
 ### What's NOT Included (Future Work)
@@ -127,8 +127,8 @@ _Geoffrey Huntley's autonomous loop pattern for Claude Code_
 │  ┌──────────────────────────────────────────────────────┐           │
 │  │                   Claude Code                         │           │
 │  │  ┌────────────────────────────────────────────────┐  │           │
-│  │  │              AgentFlow Skill                   │  │           │
-│  │  │         (.claude/skills/agentflow/)            │  │           │
+│  │  │    .claude/commands/af.md (thin dispatcher)    │  │           │
+│  │  │         routes to .agentflow/                  │  │           │
 │  │  └────────────────────────────────────────────────┘  │           │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐             │           │
 │  │  │ code-    │ │ code-    │ │ code-    │             │           │
@@ -138,10 +138,10 @@ _Geoffrey Huntley's autonomous loop pattern for Claude Code_
 │             │                                                       │
 │             ▼                                                       │
 │  ┌──────────────────────────────────────────────────────┐           │
-│  │              .agentflow/ (File System)               │           │
+│  │              .agentflow/ (shared content)            │           │
 │  │  ┌────────────┐  ┌────────────┐  ┌────────────────┐  │           │
-│  │  │ board.json │  │ CLAUDE.md  │  │ cards/*.md     │  │           │
-│  │  │ (state)    │  │ (config)   │  │ (context)      │  │           │
+│  │  │ core.md    │  │ github/    │  │ prompts/       │  │           │
+│  │  │ (concepts) │  │ json/      │  │ (agents)       │  │           │
 │  │  └────────────┘  └────────────┘  └────────────────┘  │           │
 │  └──────────────────────────────────────────────────────┘           │
 │                                                                     │
@@ -153,32 +153,26 @@ _Geoffrey Huntley's autonomous loop pattern for Claude Code_
 ## The 7-Phase Workflow
 
 ```
-┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
-│ BACKLOG │──▶│  RECON  │──▶│QUESTIONS│──▶│  ARCH   │
-│  Human  │   │  🤖 AI  │   │  Human  │   │  🤖 AI  │
-└─────────┘   └─────────┘   └─────────┘   └─────────┘
-                                               │
-┌─────────┐   ┌─────────┐   ┌─────────┐        │
-│  DONE   │◀──│CODE REV │◀──│  IMPL   │◀──┬────┘
-│    ✅   │   │  Human  │   │  🤖 AI  │   │
-└─────────┘   └─────────┘   └─────────┘   │
-                                          │
-                            ┌─────────┐   │
-                            │ARCH REV │◀──┘
-                            │  Human  │
-                            └─────────┘
+┌─────────┐   ┌──────────┐   ┌───────────┐   ┌─────────────┐
+│   NEW   │──▶│ APPROVED │──▶│REFINEMENT │──▶│ TECH-DESIGN │
+│  Human  │   │  Human   │   │   🤖 AI   │   │    🤖 AI    │
+└─────────┘   └──────────┘   └───────────┘   └─────────────┘
+                                                    │
+┌─────────┐   ┌──────────────┐   ┌────────────────┐ │
+│  DONE   │◀──│ FINAL-REVIEW │◀──│ IMPLEMENTATION │◀┘
+│    ✅   │   │    Human     │   │     🤖 AI      │
+└─────────┘   └──────────────┘   └────────────────┘
 ```
 
-| Phase                    | Type  | Agent            | Purpose                                             |
-| ------------------------ | ----- | ---------------- | --------------------------------------------------- |
-| **Backlog**              | Human | —                | Add and prioritize cards                            |
-| **Reconnaissance**       | Agent | `code-explorer`  | Analyze codebase, find patterns, generate questions |
-| **Clarifying Questions** | Human | —                | Answer questions to remove ambiguity                |
-| **Architecture**         | Agent | `code-architect` | Design 3 approaches, recommend one                  |
-| **Architecture Review**  | Human | —                | Approve approach or request changes                 |
-| **Implementation**       | Agent | Claude           | Write code following approved design                |
-| **Code Review**          | Human | `code-reviewer`  | Pre-review by AI, final approval by human           |
-| **Done**                 | —     | —                | Ship it!                                            |
+| Phase              | Type  | Agent            | Purpose                                             |
+| ------------------ | ----- | ---------------- | --------------------------------------------------- |
+| **New**            | Human | —                | Create cards, add initial context                   |
+| **Approved**       | Human | —                | Human approves card for agent work                  |
+| **Refinement**     | Agent | `code-explorer`  | Analyze codebase, document requirements, ask questions |
+| **Tech Design**    | Agent | `code-architect` | Design 3 approaches, recommend one                  |
+| **Implementation** | Agent | Claude           | Write tests, implement, run code review             |
+| **Final Review**   | Human | `code-reviewer`  | AI pre-review, human final approval                 |
+| **Done**           | —     | —                | Complete!                                           |
 
 ---
 

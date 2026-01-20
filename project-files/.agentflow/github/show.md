@@ -10,9 +10,9 @@ Display full card information.
 # Get issue with all details including comments
 gh issue view NUMBER --json number,title,body,labels,state,comments
 
-# Get project status
-gh project item-list $PROJECT --owner $OWNER --format json | \
-  jq '.items[] | select(.content.number == NUMBER) | {status: .status}'
+# Get project status (use --limit 100 to include items without status)
+gh project item-list $PROJECT --owner $OWNER --limit 100 --format json | \
+  jq '[.items[] | select(.content.number != null)] | .[] | select(.content.number == NUMBER) | {status: .status}'
 ```
 
 ## Check for Associated PR
