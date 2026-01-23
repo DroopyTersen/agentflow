@@ -10,53 +10,64 @@ This guide walks through setting up AgentFlow in a target project directory.
 
 ---
 
-## Step 1: Copy Files
+## Step 1: Choose Your Backend
 
-Copy the contents of `project-files/` into your target project:
+AgentFlow supports two backends for storing cards. Choose one before copying files:
+
+| Backend | Best For |
+|---------|----------|
+| **Local JSON** | Solo work, simple projects, offline use |
+| **GitHub Projects** | Team collaboration, issue tracking integration |
+
+---
+
+## Step 2: Copy Files
+
+### Option A: Local JSON Backend
 
 ```bash
 # From the agentflow repo
 cp -r project-files/.agentflow /path/to/your-project/
-cp -r project-files/claude /path/to/your-project/.claude
+cp -r project-files/.claude /path/to/your-project/
+
+# Remove GitHub-specific files
+rm -rf /path/to/your-project/.agentflow/github
+
+# Ensure cards directory exists
+mkdir -p /path/to/your-project/.agentflow/cards
 ```
 
-**Note:** Rename `claude/` to `.claude/` — Claude Code expects the config directory to be hidden.
-
----
-
-## Step 2: Choose Your Backend
-
-AgentFlow supports two backends for storing cards:
-
-| Backend | Config File | Best For |
-|---------|-------------|----------|
-| **Local JSON** | `.agentflow/board.json` | Solo work, simple projects, offline use |
-| **GitHub Projects** | `.agentflow/github.json` | Team collaboration, issue tracking integration |
-
-### Option A: Local JSON Backend
-
-Keep the default `board.json`. Delete the GitHub-specific files:
+Then run the setup command:
 
 ```bash
 cd /path/to/your-project
-# board.json is already set up, nothing else needed
+/af-setup-json
 ```
-
-The `/af` commands will read/write directly to `board.json` and card context files in `.agentflow/cards/`.
 
 ### Option B: GitHub Projects Backend
 
-1. Create a GitHub Project (v2) for your repository
-2. Add columns matching AgentFlow phases: New, Approved, Refinement, Tech Design, Implementation, Final Review, Done
-3. Run the setup command:
+```bash
+# From the agentflow repo
+cp -r project-files/.agentflow /path/to/your-project/
+cp -r project-files/.claude /path/to/your-project/
+
+# Remove JSON-specific files
+rm -f /path/to/your-project/.agentflow/board.json
+rm -rf /path/to/your-project/.agentflow/json
+rm -rf /path/to/your-project/.agentflow/cards
+```
+
+Then run the setup command:
 
 ```bash
+cd /path/to/your-project
 /af-setup-github
 ```
 
-This creates `.agentflow/github.json` with project IDs and column mappings.
-
-Once `github.json` exists, AgentFlow auto-detects the GitHub backend. You can delete `board.json` if you want.
+This will guide you through:
+1. Creating a GitHub Project (v2) with the correct columns
+2. Configuring labels for card types and tags
+3. Creating `.agentflow/github.json` with project IDs
 
 See [docs/github-backlog.md](github-backlog.md) for detailed GitHub setup.
 
@@ -138,13 +149,19 @@ The loop processes one card per iteration until all cards need human input.
 
 ## File Structure After Setup
 
+### Local JSON Backend
+
 ```
 your-project/
 ├── .agentflow/
-│   ├── board.json            # Local backend (or github.json for GitHub)
-│   ├── cards/                # Card context files (local backend only)
+│   ├── board.json            # Card state
+│   ├── cards/                # Card context files
 │   ├── columns/              # Phase instructions
+│   ├── core.md               # Shared concepts
+│   ├── json/                 # JSON backend commands
+│   ├── prompts/              # Agent prompts
 │   ├── loop.sh               # External loop script
+│   ├── ralph.md              # Ralph agent instructions
 │   ├── RALPH_LOOP_PROMPT.md  # Loop iteration instructions
 │   ├── PROJECT_LOOP_PROMPT.md # YOUR PROJECT CONFIG (customize this!)
 │   ├── progress.txt          # Session memory (created during loop)
@@ -155,10 +172,41 @@ your-project/
 │   │   ├── code-explorer.md
 │   │   ├── code-architect.md
 │   │   └── code-reviewer.md
-│   ├── commands/
-│   │   └── af.md             # /af command
-│   └── skills/
-│       └── agentflow/        # Natural language interface
+│   └── commands/
+│       ├── af.md             # /af command
+│       ├── af-final-review.md
+│       ├── af-setup-github.md
+│       └── af-setup-json.md
+└── ... (your project files)
+```
+
+### GitHub Projects Backend
+
+```
+your-project/
+├── .agentflow/
+│   ├── github.json           # GitHub project config
+│   ├── columns/              # Phase instructions
+│   ├── core.md               # Shared concepts
+│   ├── github/               # GitHub backend commands
+│   ├── prompts/              # Agent prompts
+│   ├── loop.sh               # External loop script
+│   ├── ralph.md              # Ralph agent instructions
+│   ├── RALPH_LOOP_PROMPT.md  # Loop iteration instructions
+│   ├── PROJECT_LOOP_PROMPT.md # YOUR PROJECT CONFIG (customize this!)
+│   ├── progress.txt          # Session memory (created during loop)
+│   └── iterations/           # Per-iteration output (created during loop)
+├── .claude/
+│   ├── settings.json         # Tool permissions
+│   ├── agents/               # Specialized agents
+│   │   ├── code-explorer.md
+│   │   ├── code-architect.md
+│   │   └── code-reviewer.md
+│   └── commands/
+│       ├── af.md             # /af command
+│       ├── af-final-review.md
+│       ├── af-setup-github.md
+│       └── af-setup-json.md
 └── ... (your project files)
 ```
 
@@ -177,8 +225,7 @@ Over time, your project will accumulate files that diverge from the template:
 | `RALPH_LOOP_PROMPT.md` | Template — sync from source |
 | `columns/*.md` | Template — sync from source |
 | `.claude/agents/*.md` | Template — sync from source |
-| `.claude/commands/af.md` | Template — sync from source |
-| `.claude/skills/agentflow/*` | Template — sync from source |
+| `.claude/commands/af*.md` | Template — sync from source |
 
 ---
 
@@ -199,22 +246,29 @@ TARGET="/path/to/your-project"
 cp "$SOURCE/.agentflow/RALPH_LOOP_PROMPT.md" "$TARGET/.agentflow/"
 cp "$SOURCE/.agentflow/loop.sh" "$TARGET/.agentflow/"
 cp "$SOURCE/.agentflow/ralph.md" "$TARGET/.agentflow/"
+cp "$SOURCE/.agentflow/core.md" "$TARGET/.agentflow/"
 
 # Phase instructions
 cp -r "$SOURCE/.agentflow/columns/" "$TARGET/.agentflow/"
 
+# Agent prompts
+cp -r "$SOURCE/.agentflow/prompts/" "$TARGET/.agentflow/"
+
+# Backend commands (sync whichever you use)
+cp -r "$SOURCE/.agentflow/json/" "$TARGET/.agentflow/"    # If using JSON
+cp -r "$SOURCE/.agentflow/github/" "$TARGET/.agentflow/"  # If using GitHub
+
 # Agents
-cp -r "$SOURCE/claude/agents/" "$TARGET/.claude/"
+cp -r "$SOURCE/.claude/agents/" "$TARGET/.claude/"
 
 # Commands (careful: project may have custom commands)
-cp "$SOURCE/claude/commands/af.md" "$TARGET/.claude/commands/"
-cp "$SOURCE/claude/commands/af-setup-github.md" "$TARGET/.claude/commands/"
-
-# Skills
-cp -r "$SOURCE/claude/skills/agentflow/" "$TARGET/.claude/skills/"
+cp "$SOURCE/.claude/commands/af.md" "$TARGET/.claude/commands/"
+cp "$SOURCE/.claude/commands/af-setup-github.md" "$TARGET/.claude/commands/"
+cp "$SOURCE/.claude/commands/af-setup-json.md" "$TARGET/.claude/commands/"
+cp "$SOURCE/.claude/commands/af-final-review.md" "$TARGET/.claude/commands/"
 
 # Settings (merge carefully if project has customizations)
-cp "$SOURCE/claude/settings.json" "$TARGET/.claude/"
+cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/"
 ```
 
 ### What NOT to Sync
@@ -244,14 +298,21 @@ echo "Syncing AgentFlow from $AGENTFLOW_REPO..."
 cp "$SOURCE/.agentflow/RALPH_LOOP_PROMPT.md" .agentflow/
 cp "$SOURCE/.agentflow/loop.sh" .agentflow/
 cp "$SOURCE/.agentflow/ralph.md" .agentflow/
+cp "$SOURCE/.agentflow/core.md" .agentflow/
 cp -r "$SOURCE/.agentflow/columns/" .agentflow/
+cp -r "$SOURCE/.agentflow/prompts/" .agentflow/
+
+# Backend commands (uncomment the one you use)
+# cp -r "$SOURCE/.agentflow/json/" .agentflow/
+# cp -r "$SOURCE/.agentflow/github/" .agentflow/
 
 # Claude config
-cp -r "$SOURCE/claude/agents/" .claude/
-cp "$SOURCE/claude/commands/af.md" .claude/commands/
-cp "$SOURCE/claude/commands/af-setup-github.md" .claude/commands/
-cp -r "$SOURCE/claude/skills/agentflow/" .claude/skills/
-cp "$SOURCE/claude/settings.json" .claude/
+cp -r "$SOURCE/.claude/agents/" .claude/
+cp "$SOURCE/.claude/commands/af.md" .claude/commands/
+cp "$SOURCE/.claude/commands/af-setup-github.md" .claude/commands/
+cp "$SOURCE/.claude/commands/af-setup-json.md" .claude/commands/
+cp "$SOURCE/.claude/commands/af-final-review.md" .claude/commands/
+cp "$SOURCE/.claude/settings.json" .claude/
 
 echo "Done. Review changes with: git diff"
 ```
@@ -266,7 +327,7 @@ Ensure `.claude/commands/af.md` exists and Claude Code is running in the project
 
 ### "No backend found" error from loop.sh
 
-Either `board.json` or `github.json` must exist in `.agentflow/`.
+Either `board.json` (JSON backend) or `github.json` (GitHub backend) must exist in `.agentflow/`.
 
 ### GitHub API errors
 
