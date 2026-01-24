@@ -33,6 +33,14 @@ START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 # Create iterations directory
 mkdir -p "$ITERATIONS_DIR"
 
+# Keep-alive: prevent Sprite hibernation by generating HTTP activity
+# (harmless on non-Sprite systems)
+python3 -m http.server 8080 --directory /tmp > /dev/null 2>&1 &
+KEEPALIVE_HTTP=$!
+(while true; do sleep 20; curl -s http://localhost:8080 > /dev/null; done) &
+KEEPALIVE_PING=$!
+trap "kill $KEEPALIVE_HTTP $KEEPALIVE_PING 2>/dev/null" EXIT
+
 # Initialize status file
 cat > "$STATUS_FILE" << EOF
 AgentFlow Loop Status
@@ -84,8 +92,9 @@ for ((i=1; i<=MAX_ITERATIONS; i++)); do
     # Run Claude in background, show progress dots every 10 seconds
     set +e
     claude -p "$(cat $PROMPT_FILE)" \
+        --verbose \
+        --dangerously-skip-permissions \
         --output-format stream-json \
-        --allowedTools "Read,Write,Edit,Bash,Glob,Grep,Task" \
         --chrome \
         > "$ITERATION_FILE" 2>&1 &
     CLAUDE_PID=$!

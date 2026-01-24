@@ -78,11 +78,14 @@ agentflow/
         │   ├── code-explorer.md
         │   ├── code-architect.md
         │   └── code-reviewer.md
-        └── commands/
-            ├── af.md            # /af dispatcher command
-            ├── af-setup-github.md
-            ├── af-setup-json.md
-            └── af-final-review.md
+        ├── commands/
+        │   ├── af.md            # /af dispatcher command
+        │   ├── af-setup-github.md
+        │   ├── af-setup-json.md
+        │   └── af-final-review.md
+        └── skills/
+            └── agentflow/       # AgentFlow skill (auto-loaded when relevant)
+                └── SKILL.md
 ```
 
 ## The 7-Column Workflow

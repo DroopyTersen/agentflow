@@ -131,11 +131,14 @@ your-project/
 │   │   ├── code-explorer.md
 │   │   ├── code-architect.md
 │   │   └── code-reviewer.md
-│   └── commands/
-│       ├── af.md             # /af command
-│       ├── af-final-review.md
-│       ├── af-setup-github.md
-│       └── af-setup-json.md
+│   ├── commands/
+│   │   ├── af.md             # /af command
+│   │   ├── af-final-review.md
+│   │   ├── af-setup-github.md
+│   │   └── af-setup-json.md
+│   └── skills/
+│       └── agentflow/        # AgentFlow skill
+│           └── SKILL.md
 └── ... (your project files)
 ```
 
@@ -161,11 +164,14 @@ your-project/
 │   │   ├── code-explorer.md
 │   │   ├── code-architect.md
 │   │   └── code-reviewer.md
-│   └── commands/
-│       ├── af.md             # /af command
-│       ├── af-final-review.md
-│       ├── af-setup-github.md
-│       └── af-setup-json.md
+│   ├── commands/
+│   │   ├── af.md             # /af command
+│   │   ├── af-final-review.md
+│   │   ├── af-setup-github.md
+│   │   └── af-setup-json.md
+│   └── skills/
+│       └── agentflow/        # AgentFlow skill
+│           └── SKILL.md
 └── ... (your project files)
 ```
 
@@ -187,8 +193,12 @@ rm -rf /path/to/your-project/.agentflow/github
 # Ensure cards directory exists
 mkdir -p /path/to/your-project/.agentflow/cards
 
-# Create Codex config directory
+# Create Codex config directories
 mkdir -p /path/to/your-project/.codex/prompts
+mkdir -p /path/to/your-project/.codex/skills
+
+# Copy AgentFlow skill
+cp -r project-files/.claude/skills/agentflow /path/to/your-project/.codex/skills/
 ```
 
 Then copy or create the `/af` prompt for Codex. You can either:
@@ -198,7 +208,7 @@ Then copy or create the `/af` prompt for Codex. You can either:
    cp ~/.codex/prompts/af.md /path/to/your-project/.codex/prompts/
    ```
 
-2. **Create a symlink to the JSON backend prompt**:
+2. **Create a prompt referencing JSON backend**:
    ```bash
    # Create af.md that references .agentflow/json/
    cat > /path/to/your-project/.codex/prompts/af.md << 'EOF'
@@ -229,8 +239,12 @@ rm -f /path/to/your-project/.agentflow/board.json
 rm -rf /path/to/your-project/.agentflow/json
 rm -rf /path/to/your-project/.agentflow/cards
 
-# Create Codex config directory
+# Create Codex config directories
 mkdir -p /path/to/your-project/.codex/prompts
+mkdir -p /path/to/your-project/.codex/skills
+
+# Copy AgentFlow skill
+cp -r project-files/.claude/skills/agentflow /path/to/your-project/.codex/skills/
 ```
 
 Then copy or create the `/af` prompt for Codex:
@@ -240,7 +254,7 @@ Then copy or create the `/af` prompt for Codex:
    cp ~/.codex/prompts/af.md /path/to/your-project/.codex/prompts/
    ```
 
-2. **Create a new prompt referencing GitHub backend**:
+2. **Create a prompt referencing GitHub backend**:
    ```bash
    cat > /path/to/your-project/.codex/prompts/af.md << 'EOF'
    ---
@@ -276,8 +290,11 @@ your-project/
 │   ├── RALPH_LOOP_PROMPT.md       # Loop iteration instructions
 │   └── PROJECT_LOOP_PROMPT.md     # YOUR PROJECT CONFIG
 ├── .codex/
-│   └── prompts/
-│       └── af.md                  # /prompts:af command
+│   ├── prompts/
+│   │   └── af.md                  # /prompts:af command
+│   └── skills/
+│       └── agentflow/             # AgentFlow skill
+│           └── SKILL.md
 └── ... (your project files)
 ```
 
@@ -399,13 +416,18 @@ cp -r "$SOURCE/.agentflow/prompts/" "$TARGET/.agentflow/"
 cp -r "$SOURCE/.agentflow/json/" "$TARGET/.agentflow/"    # If using JSON
 cp -r "$SOURCE/.agentflow/github/" "$TARGET/.agentflow/"  # If using GitHub
 
-# Claude Code only: agents and commands
+# Claude Code only: agents, commands, and skills
 cp -r "$SOURCE/.claude/agents/" "$TARGET/.claude/"
 cp "$SOURCE/.claude/commands/af.md" "$TARGET/.claude/commands/"
 cp "$SOURCE/.claude/commands/af-setup-github.md" "$TARGET/.claude/commands/"
 cp "$SOURCE/.claude/commands/af-setup-json.md" "$TARGET/.claude/commands/"
 cp "$SOURCE/.claude/commands/af-final-review.md" "$TARGET/.claude/commands/"
+cp -r "$SOURCE/.claude/skills/agentflow/" "$TARGET/.claude/skills/"
 cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/"
+
+# Codex CLI only: skills
+mkdir -p "$TARGET/.codex/skills"
+cp -r "$SOURCE/.claude/skills/agentflow/" "$TARGET/.codex/skills/"
 ```
 
 ## What NOT to Sync
@@ -462,3 +484,5 @@ Check `.agentflow/loop_status.txt` for status. Common causes:
 | `columns/*.md` | Template — sync from source |
 | `.claude/agents/*.md` | Template — sync from source |
 | `.claude/commands/af*.md` | Template — sync from source |
+| `.claude/skills/agentflow/` | Template — sync from source |
+| `.codex/skills/agentflow/` | Template — sync from source (Codex) |
