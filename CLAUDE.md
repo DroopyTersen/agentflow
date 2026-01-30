@@ -67,24 +67,38 @@ agentflow/
     │   │   ├── 04_implementation.md
     │   │   ├── 05_final-review.md
     │   │   └── 06_done.md
-    │   ├── loop.sh              # External bash loop script (Claude)
-    │   ├── loop-codex.sh        # External bash loop script (Codex)
+    │   ├── loop.sh              # External bash loop script (supports --claude and --codex)
     │   ├── ralph.md             # Ralph agent instructions
     │   ├── RALPH_LOOP_PROMPT.md # Instructions for each loop iteration
     │   └── PROJECT_LOOP_PROMPT.md # Project-specific customization
-    └── .claude/                 # Claude Code thin wrappers
-        ├── settings.json        # Tool permissions
-        ├── agents/              # ~9-line wrappers referencing .agentflow/prompts/
-        │   ├── code-explorer.md
-        │   ├── code-architect.md
-        │   └── code-reviewer.md
-        ├── commands/
-        │   ├── af.md            # /af dispatcher command
+    ├── .claude/                 # Claude Code thin wrappers
+    │   ├── settings.json        # Tool permissions
+    │   ├── agents/              # ~9-line wrappers referencing .agentflow/prompts/
+    │   │   ├── code-explorer.md
+    │   │   ├── code-architect.md
+    │   │   └── code-reviewer.md
+    │   ├── commands/
+    │   │   ├── af.md            # /af dispatcher command
+    │   │   ├── af-setup-github.md
+    │   │   ├── af-setup-json.md
+    │   │   └── af-final-review.md
+    │   └── skills/
+    │       └── agentflow/       # AgentFlow skill (auto-loaded when relevant)
+    │           └── SKILL.md
+    └── .codex/                  # Codex CLI wrappers
+        ├── prompts/             # /prompts:af commands
+        │   ├── af.md
         │   ├── af-setup-github.md
         │   ├── af-setup-json.md
         │   └── af-final-review.md
-        └── skills/
-            └── agentflow/       # AgentFlow skill (auto-loaded when relevant)
+        └── skills/              # Codex skills
+            ├── agentflow/
+            │   └── SKILL.md
+            ├── code-explorer/
+            │   └── SKILL.md
+            ├── code-architect/
+            │   └── SKILL.md
+            └── code-reviewer/
                 └── SKILL.md
 ```
 
@@ -180,13 +194,16 @@ Remove the `needs-feedback` tag to allow agent to continue.
 External bash script that runs the agent repeatedly:
 
 ```bash
-# Claude Code
-.agentflow/loop.sh        # Default: 20 iterations
-.agentflow/loop.sh 50     # Custom max
+# Claude Code (default)
+.agentflow/loop.sh              # Default: 20 iterations
+.agentflow/loop.sh 50           # Custom max
 
 # Codex CLI
-.agentflow/loop-codex.sh
-.agentflow/loop-codex.sh 50
+.agentflow/loop.sh --codex      # 20 iterations
+.agentflow/loop.sh --codex 50   # Custom max
+
+# Explicit Claude
+.agentflow/loop.sh --claude 50
 ```
 
 Each iteration:

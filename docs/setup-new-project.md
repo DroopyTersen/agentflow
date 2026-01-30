@@ -186,40 +186,15 @@ your-project/
 ```bash
 # From the agentflow repo
 cp -r project-files/.agentflow /path/to/your-project/
+cp -r project-files/.codex /path/to/your-project/
+cp project-files/AGENTS.md /path/to/your-project/
 
 # Remove GitHub-specific files
 rm -rf /path/to/your-project/.agentflow/github
 
 # Ensure cards directory exists
 mkdir -p /path/to/your-project/.agentflow/cards
-
-# Create Codex config directories
-mkdir -p /path/to/your-project/.codex/prompts
-mkdir -p /path/to/your-project/.codex/skills
-
-# Copy AgentFlow skill
-cp -r project-files/.claude/skills/agentflow /path/to/your-project/.codex/skills/
 ```
-
-Then copy or create the `/af` prompt for Codex. You can either:
-
-1. **Copy from user-level config** (if you have `~/.codex/prompts/af.md`):
-   ```bash
-   cp ~/.codex/prompts/af.md /path/to/your-project/.codex/prompts/
-   ```
-
-2. **Create a prompt referencing JSON backend**:
-   ```bash
-   # Create af.md that references .agentflow/json/
-   cat > /path/to/your-project/.codex/prompts/af.md << 'EOF'
-   ---
-   description: AgentFlow board management using local JSON
-   allowed-tools: Read, Write, Glob, Bash, Agent
-   ---
-
-   Read `.agentflow/json/README.md` for command reference, then execute the requested `/af` command.
-   EOF
-   ```
 
 Run the setup:
 
@@ -233,38 +208,14 @@ cd /path/to/your-project
 ```bash
 # From the agentflow repo
 cp -r project-files/.agentflow /path/to/your-project/
+cp -r project-files/.codex /path/to/your-project/
+cp project-files/AGENTS.md /path/to/your-project/
 
 # Remove JSON-specific files
 rm -f /path/to/your-project/.agentflow/board.json
 rm -rf /path/to/your-project/.agentflow/json
 rm -rf /path/to/your-project/.agentflow/cards
-
-# Create Codex config directories
-mkdir -p /path/to/your-project/.codex/prompts
-mkdir -p /path/to/your-project/.codex/skills
-
-# Copy AgentFlow skill
-cp -r project-files/.claude/skills/agentflow /path/to/your-project/.codex/skills/
 ```
-
-Then copy or create the `/af` prompt for Codex:
-
-1. **Copy from user-level config** (if you have `~/.codex/prompts/af.md`):
-   ```bash
-   cp ~/.codex/prompts/af.md /path/to/your-project/.codex/prompts/
-   ```
-
-2. **Create a prompt referencing GitHub backend**:
-   ```bash
-   cat > /path/to/your-project/.codex/prompts/af.md << 'EOF'
-   ---
-   description: AgentFlow board management using GitHub Projects
-   allowed-tools: Read, Write, Glob, Bash, Agent
-   ---
-
-   Read `.agentflow/github/README.md` for command reference, then execute the requested `/af` command.
-   EOF
-   ```
 
 Run the setup:
 
@@ -277,6 +228,7 @@ cd /path/to/your-project
 
 ```
 your-project/
+├── AGENTS.md                      # Codex project instructions
 ├── .agentflow/
 │   ├── board.json OR github.json  # Backend config
 │   ├── cards/                     # Card context (JSON backend only)
@@ -284,16 +236,24 @@ your-project/
 │   ├── core.md                    # Shared concepts
 │   ├── json/ OR github/           # Backend commands
 │   ├── prompts/                   # Agent prompts
-│   ├── loop.sh                    # External loop script (Claude)
-│   ├── loop-codex.sh              # External loop script (Codex)
+│   ├── loop.sh                    # External loop script (supports --codex)
 │   ├── ralph.md                   # Ralph agent instructions
 │   ├── RALPH_LOOP_PROMPT.md       # Loop iteration instructions
 │   └── PROJECT_LOOP_PROMPT.md     # YOUR PROJECT CONFIG
 ├── .codex/
-│   ├── prompts/
-│   │   └── af.md                  # /prompts:af command
-│   └── skills/
-│       └── agentflow/             # AgentFlow skill
+│   ├── prompts/                   # /prompts:af commands
+│   │   ├── af.md
+│   │   ├── af-setup-github.md
+│   │   ├── af-setup-json.md
+│   │   └── af-final-review.md
+│   └── skills/                    # Codex skills
+│       ├── agentflow/
+│       │   └── SKILL.md
+│       ├── code-explorer/
+│       │   └── SKILL.md
+│       ├── code-architect/
+│       │   └── SKILL.md
+│       └── code-reviewer/
 │           └── SKILL.md
 └── ... (your project files)
 ```
@@ -301,11 +261,11 @@ your-project/
 ## Codex-Specific Notes
 
 - Commands use `/prompts:af` instead of `/af`
-- Agents are invoked with `Agent("name")` pattern
-- The loop script is `.agentflow/loop-codex.sh`
+- Agents are Codex skills: `$code-explorer`, `$code-architect`, `$code-reviewer`
+- Run the loop with `.agentflow/loop.sh --codex`
 
 See [Codex Compatibility Guide](codex-compatibility.md) for detailed Codex setup including:
-- Converting Claude agents to Codex skills
+- Skill descriptions and usage
 - Running the Ralph loop with `codex exec`
 - Dual-CLI configurations
 
@@ -374,13 +334,16 @@ cd /path/to/your-project
 Start the autonomous agent loop:
 
 ```bash
-# Claude Code
-.agentflow/loop.sh        # Default: 20 iterations
-.agentflow/loop.sh 50     # Custom max iterations
+# Claude Code (default)
+.agentflow/loop.sh              # Default: 20 iterations
+.agentflow/loop.sh 50           # Custom max iterations
 
 # Codex CLI
-.agentflow/loop-codex.sh
-.agentflow/loop-codex.sh 50
+.agentflow/loop.sh --codex      # Default: 20 iterations
+.agentflow/loop.sh --codex 50   # Custom max iterations
+
+# Explicit Claude
+.agentflow/loop.sh --claude 50
 ```
 
 The loop processes one card per iteration until all cards need human input.
@@ -416,7 +379,7 @@ cp -r "$SOURCE/.agentflow/prompts/" "$TARGET/.agentflow/"
 cp -r "$SOURCE/.agentflow/json/" "$TARGET/.agentflow/"    # If using JSON
 cp -r "$SOURCE/.agentflow/github/" "$TARGET/.agentflow/"  # If using GitHub
 
-# Claude Code only: agents, commands, and skills
+# Claude Code: agents, commands, and skills
 cp -r "$SOURCE/.claude/agents/" "$TARGET/.claude/"
 cp "$SOURCE/.claude/commands/af.md" "$TARGET/.claude/commands/"
 cp "$SOURCE/.claude/commands/af-setup-github.md" "$TARGET/.claude/commands/"
@@ -425,9 +388,9 @@ cp "$SOURCE/.claude/commands/af-final-review.md" "$TARGET/.claude/commands/"
 cp -r "$SOURCE/.claude/skills/agentflow/" "$TARGET/.claude/skills/"
 cp "$SOURCE/.claude/settings.json" "$TARGET/.claude/"
 
-# Codex CLI only: skills
-mkdir -p "$TARGET/.codex/skills"
-cp -r "$SOURCE/.claude/skills/agentflow/" "$TARGET/.codex/skills/"
+# Codex CLI: prompts and skills
+cp -r "$SOURCE/.codex/prompts/" "$TARGET/.codex/"
+cp -r "$SOURCE/.codex/skills/" "$TARGET/.codex/"
 ```
 
 ## What NOT to Sync

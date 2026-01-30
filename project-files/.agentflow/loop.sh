@@ -1,14 +1,17 @@
 #!/bin/bash
 #
 # AgentFlow Ralph Loop
-# Runs Claude repeatedly until no workable cards remain.
+# Runs Claude or Codex repeatedly until no workable cards remain.
 #
 # Usage:
-#   .agentflow/loop.sh              # Default: max 20 iterations
-#   .agentflow/loop.sh 50           # Custom max iterations
+#   .agentflow/loop.sh              # Default: Claude, 20 iterations
+#   .agentflow/loop.sh 50           # Claude, 50 iterations
+#   .agentflow/loop.sh --codex      # Codex, 20 iterations
+#   .agentflow/loop.sh --codex 50   # Codex, 50 iterations
+#   .agentflow/loop.sh --claude 50  # Claude, 50 iterations (explicit)
 #
 # Requirements:
-#   - Claude Code CLI installed
+#   - Claude Code CLI or Codex CLI installed
 #   - Backend config: .agentflow/board.json (local) or .agentflow/github.json (GitHub)
 #   - .agentflow/RALPH_LOOP_PROMPT.md exists
 #
@@ -19,7 +22,29 @@
 
 set -e
 
-MAX_ITERATIONS=${1:-20}
+# Parse arguments
+CLI_TYPE="claude"
+MAX_ITERATIONS=20
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --codex)
+            CLI_TYPE="codex"
+            shift
+            ;;
+        --claude)
+            CLI_TYPE="claude"
+            shift
+            ;;
+        *)
+            # Assume it's the max iterations number
+            if [[ $1 =~ ^[0-9]+$ ]]; then
+                MAX_ITERATIONS=$1
+            fi
+            shift
+            ;;
+    esac
+done
 KEEP_ITERATIONS=5
 PROMPT_FILE=".agentflow/RALPH_LOOP_PROMPT.md"
 ITERATIONS_DIR=".agentflow/iterations"
@@ -29,6 +54,13 @@ START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 # Verify setup - supports both local (board.json) and GitHub (github.json) backends
 [[ -f ".agentflow/board.json" || -f ".agentflow/github.json" ]] || { echo "Error: No backend found (.agentflow/board.json or .agentflow/github.json)"; exit 1; }
 [[ -f "$PROMPT_FILE" ]] || { echo "Error: $PROMPT_FILE not found"; exit 1; }
+
+# Verify CLI is available
+if [[ "$CLI_TYPE" == "codex" ]]; then
+    command -v codex >/dev/null 2>&1 || { echo "Error: Codex CLI not found. Install with: npm install -g @openai/codex"; exit 1; }
+else
+    command -v claude >/dev/null 2>&1 || { echo "Error: Claude Code CLI not found"; exit 1; }
+fi
 
 # Create iterations directory
 mkdir -p "$ITERATIONS_DIR"
@@ -46,12 +78,13 @@ cat > "$STATUS_FILE" << EOF
 AgentFlow Loop Status
 =====================
 Started: $START_TIME
+CLI: $CLI_TYPE
 Max iterations: $MAX_ITERATIONS
 Status: running
 Current: 0/$MAX_ITERATIONS
 EOF
 
-echo "AgentFlow Loop | Max: $MAX_ITERATIONS iterations | Ctrl+C to stop"
+echo "AgentFlow Loop | CLI: $CLI_TYPE | Max: $MAX_ITERATIONS iterations | Ctrl+C to stop"
 echo "Status: $STATUS_FILE"
 echo "Iterations: $ITERATIONS_DIR/"
 echo ""
@@ -89,27 +122,36 @@ for ((i=1; i<=MAX_ITERATIONS; i++)); do
     echo "--- Iteration $i/$MAX_ITERATIONS ---"
     update_status "$i" "running" "Processing iteration $i..."
 
-    # Run Claude in background, show progress dots every 10 seconds
+    # Run CLI in background, show progress dots every 10 seconds
     set +e
-    claude -p "$(cat $PROMPT_FILE)" \
-        --verbose \
-        --dangerously-skip-permissions \
-        --output-format stream-json \
-        --chrome \
-        > "$ITERATION_FILE" 2>&1 &
-    CLAUDE_PID=$!
+    if [[ "$CLI_TYPE" == "codex" ]]; then
+        # Codex exec mode
+        codex exec "$(cat $PROMPT_FILE)" \
+            --full-auto \
+            --json \
+            > "$ITERATION_FILE" 2>&1 &
+    else
+        # Claude Code mode
+        claude -p "$(cat $PROMPT_FILE)" \
+            --verbose \
+            --dangerously-skip-permissions \
+            --output-format stream-json \
+            --chrome \
+            > "$ITERATION_FILE" 2>&1 &
+    fi
+    CLI_PID=$!
 
     # Show dots while waiting (flush immediately)
-    while kill -0 $CLAUDE_PID 2>/dev/null; do
+    while kill -0 $CLI_PID 2>/dev/null; do
         sleep 10
         echo -n "." >&2
     done
-    wait $CLAUDE_PID
+    wait $CLI_PID
     EXIT_CODE=$?
     set -e
 
     echo "" >&2  # newline after dots
-    echo "[$(date '+%H:%M:%S')] Iteration $i complete (exit: $EXIT_CODE)"
+    echo "[$(date '+%H:%M:%S')] Iteration $i complete (exit: $EXIT_CODE, cli: $CLI_TYPE)"
 
     # Show what was added to progress.txt (last entry)
     if [[ -f ".agentflow/progress.txt" ]]; then
@@ -123,30 +165,48 @@ for ((i=1; i<=MAX_ITERATIONS; i++)); do
 
     # Check for errors
     if [[ $EXIT_CODE -ne 0 ]]; then
-        echo "Warning: Claude exited with code $EXIT_CODE"
+        echo "Warning: $CLI_TYPE exited with code $EXIT_CODE"
         update_status "$i" "error" "Iteration $i failed with exit code $EXIT_CODE"
     fi
 
     # Check for completion signals
-    # Only match in result/assistant output, not in loaded documentation
-    # The "result" field contains the final agent output
-    if grep -q '"result":"[^"]*AGENTFLOW_NO_WORKABLE_CARDS' "$ITERATION_FILE" 2>/dev/null; then
-        echo ""
-        echo "No workable cards remain."
-        update_status "$i" "complete" "No workable cards remain. Loop finished after $i iteration(s)."
-        cleanup_old_iterations
-        echo "Loop finished after $i iteration(s)"
-        exit 0
-    fi
+    # Signal detection varies by CLI type:
+    # - Claude: "result" field in stream-json output
+    # - Codex: JSON Lines with "message" or "content" fields
+    if [[ "$CLI_TYPE" == "codex" ]]; then
+        # Codex JSON Lines format - check for signal in message/content fields
+        if grep -qE '(message|content).*AGENTFLOW_NO_WORKABLE_CARDS' "$ITERATION_FILE" 2>/dev/null; then
+            echo ""
+            echo "No workable cards remain."
+            update_status "$i" "complete" "No workable cards remain. Loop finished after $i iteration(s)."
+            cleanup_old_iterations
+            echo "Loop finished after $i iteration(s)"
+            exit 0
+        fi
 
-    # Check if iteration completed normally (one card processed)
-    # Only match in result field, not in loaded documentation
-    if grep -q '"result":"[^"]*AGENTFLOW_ITERATION_COMPLETE' "$ITERATION_FILE" 2>/dev/null; then
-        echo "Card processed successfully."
+        if grep -qE '(message|content).*AGENTFLOW_ITERATION_COMPLETE' "$ITERATION_FILE" 2>/dev/null; then
+            echo "Card processed successfully."
+        else
+            echo "Warning: No completion signal found. Agent may have been interrupted."
+            update_status "$i" "warning" "Iteration $i: No completion signal. Continuing anyway..."
+        fi
     else
-        # Neither signal found - agent may have been cut off
-        echo "Warning: No completion signal found. Agent may have been interrupted."
-        update_status "$i" "warning" "Iteration $i: No completion signal. Continuing anyway..."
+        # Claude stream-json format - check "result" field
+        if grep -q '"result":"[^"]*AGENTFLOW_NO_WORKABLE_CARDS' "$ITERATION_FILE" 2>/dev/null; then
+            echo ""
+            echo "No workable cards remain."
+            update_status "$i" "complete" "No workable cards remain. Loop finished after $i iteration(s)."
+            cleanup_old_iterations
+            echo "Loop finished after $i iteration(s)"
+            exit 0
+        fi
+
+        if grep -q '"result":"[^"]*AGENTFLOW_ITERATION_COMPLETE' "$ITERATION_FILE" 2>/dev/null; then
+            echo "Card processed successfully."
+        else
+            echo "Warning: No completion signal found. Agent may have been interrupted."
+            update_status "$i" "warning" "Iteration $i: No completion signal. Continuing anyway..."
+        fi
     fi
 
     # Cleanup old iterations to save disk space

@@ -2,7 +2,7 @@
 
 **A file-based Kanban workflow for AI-assisted software development.**
 
-AgentFlow combines the best ideas from three pioneering tools into a lightweight, file-based system that works with Claude Code. It brings structure and human oversight to AI coding without requiring a separate application.
+AgentFlow combines the best ideas from three pioneering tools into a lightweight, file-based system that works with **Claude Code** and **OpenAI Codex CLI**. It brings structure and human oversight to AI coding without requiring a separate application.
 
 ---
 
@@ -91,11 +91,12 @@ _Geoffrey Huntley's autonomous loop pattern for Claude Code_
 | ------------------------- | ---------------------------------------------------------------------------------------------- |
 | **7-column Kanban board** | New → Approved → Refinement → Tech Design → Implementation → Final Review → Done               |
 | **3 specialized agents**  | `code-explorer`, `code-architect`, `code-reviewer`                                             |
-| **External loop script**  | `loop.sh` runs Claude iteratively until blocked                                                |
+| **External loop script**  | `loop.sh` runs Claude or Codex iteratively until blocked                                       |
 | **File-based state**      | GitHub Projects or local `board.json` for cards                                                |
 | **Human checkpoints**     | Approved, Tech Design, Final Review require human action                                       |
 | **Project customization** | `PROJECT_LOOP_PROMPT.md` for project-specific instructions                                     |
-| **CLI commands**          | `/af add`, `/af list`, `/af status`, `/af work`, etc.                                          |
+| **CLI commands**          | Claude: `/af add`, Codex: `/prompts:af add`, etc.                                              |
+| **Multi-agent support**   | Works with Claude Code or OpenAI Codex CLI                                                     |
 
 ### What's NOT Included (Future Work)
 
@@ -560,24 +561,37 @@ Separation also allows standalone use: `Agent("code-explorer")` works outside th
 
 ## Getting Started
 
+See [docs/setup-new-project.md](docs/setup-new-project.md) for detailed setup instructions.
+
+### Quick Start
+
 ```bash
 # 1. Copy AgentFlow files to your project
-cp -r agentflow-mvp/.* agentflow-mvp/* your-project/
+cp -r project-files/.agentflow /path/to/your-project/
+cp -r project-files/.claude /path/to/your-project/     # For Claude Code
+cp -r project-files/.codex /path/to/your-project/      # For Codex CLI
+cp project-files/AGENTS.md /path/to/your-project/      # For Codex CLI
 
 # 2. Make the loop executable
-chmod +x your-project/loop.sh
+chmod +x /path/to/your-project/.agentflow/loop.sh
 
 # 3. Customize for your project
-vim your-project/.agentflow/CLAUDE.md
+vim /path/to/your-project/.agentflow/PROJECT_LOOP_PROMPT.md
 
 # 4. Add cards
-cd your-project && claude
-> /af add "Implement user authentication"
-> /af add "Add search feature"
-> exit
+cd /path/to/your-project
+
+# Claude Code
+/af add "Implement user authentication"
+/af add "Add search feature"
+
+# Codex CLI
+/prompts:af add "Implement user authentication"
+/prompts:af add "Add search feature"
 
 # 5. Run the loop
-./loop.sh
+.agentflow/loop.sh              # Claude (default)
+.agentflow/loop.sh --codex      # Codex CLI
 ```
 
 ---

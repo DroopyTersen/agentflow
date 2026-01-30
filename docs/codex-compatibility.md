@@ -346,13 +346,16 @@ Codex uses a different permission model based on approval modes rather than expl
 
 ### Directory Structure
 
+AgentFlow now ships with pre-configured `.codex/` directory in `project-files/`:
+
 ```
 your-project/
-├── CLAUDE.md                      # Shared instructions
-├── AGENTS.md → CLAUDE.md          # Symlink for Codex
+├── CLAUDE.md                      # Claude Code instructions
+├── AGENTS.md                      # Codex instructions (included)
 ├── .agentflow/                    # Workflow state (shared)
 │   ├── board.json
 │   ├── cards/
+│   ├── loop.sh                    # Supports --claude and --codex flags
 │   └── ...
 ├── .claude/                       # Claude Code config
 │   ├── settings.json
@@ -364,9 +367,15 @@ your-project/
 │       ├── code-explorer.md
 │       ├── code-architect.md
 │       └── code-reviewer.md
-└── .codex/                        # Codex config
-    └── skills/
-        ├── agentflow → ../../.claude/skills/agentflow
+└── .codex/                        # Codex config (included)
+    ├── prompts/                   # /prompts:af commands
+    │   ├── af.md
+    │   ├── af-setup-github.md
+    │   ├── af-setup-json.md
+    │   └── af-final-review.md
+    └── skills/                    # Codex skills
+        ├── agentflow/
+        │   └── SKILL.md
         ├── code-explorer/
         │   └── SKILL.md
         ├── code-architect/
@@ -449,9 +458,10 @@ echo "Setup complete!"
 
 | Claude Code | Codex |
 |-------------|-------|
-| `.agentflow/loop.sh` | `.agentflow/loop.sh` |
+| `.agentflow/loop.sh` | `.agentflow/loop.sh --codex` |
+| `.agentflow/loop.sh 50` | `.agentflow/loop.sh --codex 50` |
 
-The loop script works with both CLIs since it's external bash.
+The unified loop script supports both CLIs via the `--codex` flag.
 
 ### Using Agents/Skills
 
@@ -572,7 +582,22 @@ codex exec "How many cards are on the board now?"
 
 ## 10. The Ralph Loop with Codex
 
-The Ralph Loop pattern can run with Codex CLI using `codex exec` for non-interactive (headless) execution.
+The unified `loop.sh` now supports both Claude and Codex via command-line flags.
+
+### Usage
+
+```bash
+# Claude Code (default)
+.agentflow/loop.sh              # 20 iterations
+.agentflow/loop.sh 50           # 50 iterations
+
+# Codex CLI
+.agentflow/loop.sh --codex      # 20 iterations
+.agentflow/loop.sh --codex 50   # 50 iterations
+
+# Explicit Claude
+.agentflow/loop.sh --claude 50
+```
 
 ### Headless Mode Comparison
 
@@ -580,173 +605,25 @@ The Ralph Loop pattern can run with Codex CLI using `codex exec` for non-interac
 |---------|-------------|-------|
 | Headless flag | `claude -p "prompt"` | `codex exec "prompt"` |
 | JSON output | `--output-format stream-json` | `--json` |
-| Tool permissions | `--allowedTools "..."` | `--full-auto` or `--sandbox` |
-| Output to file | stdout redirect | `-o output.json` |
+| Tool permissions | `--dangerously-skip-permissions` | `--full-auto` |
+| JSON structure | `{"result": "..."}` | `{"content": "...", "message": "..."}` |
 
-### Creating loop-codex.sh
+### How It Works
 
-Create a Codex-compatible loop script at `.agentflow/loop-codex.sh`:
+The loop script detects the `--codex` or `--claude` flag and runs the appropriate CLI:
 
 ```bash
-#!/bin/bash
-#
-# AgentFlow Ralph Loop (Codex CLI Version)
-# Runs Codex repeatedly until no workable cards remain.
-#
-# Usage:
-#   .agentflow/loop-codex.sh              # Default: max 20 iterations
-#   .agentflow/loop-codex.sh 50           # Custom max iterations
-#
-# Requirements:
-#   - OpenAI Codex CLI installed
-#   - CODEX_API_KEY set in environment
-#   - Backend config: .agentflow/board.json or .agentflow/github.json
-#   - .agentflow/RALPH_LOOP_PROMPT.md exists
-#
+# Claude mode
+claude -p "$(cat $PROMPT_FILE)" \
+    --verbose \
+    --dangerously-skip-permissions \
+    --output-format stream-json
 
-set -e
-
-MAX_ITERATIONS=${1:-20}
-KEEP_ITERATIONS=5
-PROMPT_FILE=".agentflow/RALPH_LOOP_PROMPT.md"
-ITERATIONS_DIR=".agentflow/iterations"
-STATUS_FILE=".agentflow/loop_status.txt"
-START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-
-# Verify setup
-[[ -f ".agentflow/board.json" || -f ".agentflow/github.json" ]] || { echo "Error: No backend found"; exit 1; }
-[[ -f "$PROMPT_FILE" ]] || { echo "Error: $PROMPT_FILE not found"; exit 1; }
-command -v codex >/dev/null 2>&1 || { echo "Error: codex CLI not found"; exit 1; }
-
-# Create iterations directory
-mkdir -p "$ITERATIONS_DIR"
-
-# Initialize status file
-cat > "$STATUS_FILE" << EOF
-AgentFlow Loop Status (Codex)
-==============================
-Started: $START_TIME
-Max iterations: $MAX_ITERATIONS
-CLI: codex
-Status: running
-Current: 0/$MAX_ITERATIONS
-EOF
-
-echo "AgentFlow Loop (Codex) | Max: $MAX_ITERATIONS iterations | Ctrl+C to stop"
-echo "Status: $STATUS_FILE"
-echo "Iterations: $ITERATIONS_DIR/"
-echo ""
-
-cleanup_old_iterations() {
-    local count=$(ls -1 "$ITERATIONS_DIR"/iteration_*.txt 2>/dev/null | wc -l)
-    if [[ $count -gt $KEEP_ITERATIONS ]]; then
-        ls -1t "$ITERATIONS_DIR"/iteration_*.txt | tail -n +$((KEEP_ITERATIONS + 1)) | xargs rm -f
-    fi
-}
-
-update_status() {
-    local iteration=$1
-    local status=$2
-    local detail=$3
-    cat > "$STATUS_FILE" << EOF
-AgentFlow Loop Status (Codex)
-==============================
-Started: $START_TIME
-Max iterations: $MAX_ITERATIONS
-CLI: codex
-Status: $status
-Current: $iteration/$MAX_ITERATIONS
-Last update: $(date '+%H:%M:%S')
-
-$detail
-
-Recent iterations: $ITERATIONS_DIR/
-EOF
-}
-
-for ((i=1; i<=MAX_ITERATIONS; i++)); do
-    ITERATION_FILE="$ITERATIONS_DIR/iteration_$(printf '%03d' $i).txt"
-
-    echo "--- Iteration $i/$MAX_ITERATIONS ---"
-    update_status "$i" "running" "Processing iteration $i..."
-
-    # Run Codex in non-interactive mode
-    # --full-auto: allows file edits without prompts
-    # --json: machine-readable output
-    # --sandbox workspace-write: can write to project files
-    set +e
-    codex exec \
-        --full-auto \
-        --json \
-        --sandbox workspace-write \
-        "$(cat $PROMPT_FILE)" \
-        > "$ITERATION_FILE" 2>&1 &
-    CODEX_PID=$!
-
-    # Show dots while waiting
-    while kill -0 $CODEX_PID 2>/dev/null; do
-        sleep 10
-        echo -n "." >&2
-    done
-    wait $CODEX_PID
-    EXIT_CODE=$?
-    set -e
-
-    echo "" >&2
-    echo "[$(date '+%H:%M:%S')] Iteration $i complete (exit: $EXIT_CODE)"
-
-    # Show progress
-    if [[ -f ".agentflow/progress.txt" ]]; then
-        echo "--- Progress ---"
-        tail -20 .agentflow/progress.txt
-        echo "----------------"
-    fi
-
-    # Check for errors
-    if [[ $EXIT_CODE -ne 0 ]]; then
-        echo "Warning: Codex exited with code $EXIT_CODE"
-        update_status "$i" "error" "Iteration $i failed with exit code $EXIT_CODE"
-    fi
-
-    # Check for completion signals in JSON output
-    # Codex JSON format differs from Claude - look in content/text fields
-    if grep -qE '"(content|text|result)".*AGENTFLOW_NO_WORKABLE_CARDS' "$ITERATION_FILE" 2>/dev/null; then
-        echo ""
-        echo "No workable cards remain."
-        update_status "$i" "complete" "No workable cards remain. Loop finished after $i iteration(s)."
-        cleanup_old_iterations
-        echo "Loop finished after $i iteration(s)"
-        exit 0
-    fi
-
-    if grep -qE '"(content|text|result)".*AGENTFLOW_ITERATION_COMPLETE' "$ITERATION_FILE" 2>/dev/null; then
-        echo "Card processed successfully."
-    else
-        echo "Warning: No completion signal found."
-        update_status "$i" "warning" "Iteration $i: No completion signal."
-    fi
-
-    cleanup_old_iterations
-    update_status "$i" "running" "Completed iteration $i"
-
-    echo ""
-    sleep 2
-done
-
-update_status "$MAX_ITERATIONS" "complete" "Max iterations reached."
-cleanup_old_iterations
-echo "Loop finished after $MAX_ITERATIONS iteration(s) (max reached)"
+# Codex mode
+codex exec "$(cat $PROMPT_FILE)" \
+    --full-auto \
+    --json
 ```
-
-### Key Differences from Claude Loop
-
-| Aspect | Claude loop.sh | Codex loop-codex.sh |
-|--------|----------------|---------------------|
-| CLI command | `claude -p "..."` | `codex exec "..."` |
-| Output format | `--output-format stream-json` | `--json` |
-| Permissions | `--allowedTools "Read,Write,..."` | `--full-auto --sandbox workspace-write` |
-| Tool control | Fine-grained per-tool | Approval + sandbox modes |
-| JSON structure | `{"result": "..."}` | `{"content": "...", "text": "..."}` |
 
 ### Authentication for Headless/CI
 
@@ -757,7 +634,7 @@ For Codex in headless environments:
 export CODEX_API_KEY="your-api-key"
 
 # Option 2: Inline
-CODEX_API_KEY="your-key" .agentflow/loop-codex.sh
+CODEX_API_KEY="your-key" .agentflow/loop.sh --codex
 
 # Option 3: Device auth (for first-time setup in headless)
 codex login --device-auth
@@ -769,28 +646,8 @@ codex login --device-auth
 |------|---------|---------------|
 | `--full-auto` | Skip approvals, allow edits | Required for loop |
 | `--json` | JSON Lines output | Parse completion signals |
-| `--sandbox workspace-write` | Write to project files | Required for edits |
-| `--sandbox read-only` | No modifications | Testing only |
 | `-o <path>` | Write final message to file | Optional |
 | `--skip-git-repo-check` | Run outside git repo | Not recommended |
-
-### Running Both Loops
-
-You can maintain both loop scripts and choose based on which CLI is available:
-
-```bash
-# Auto-detect and run appropriate loop
-if command -v claude &>/dev/null; then
-    .agentflow/loop.sh "$@"
-elif command -v codex &>/dev/null; then
-    .agentflow/loop-codex.sh "$@"
-else
-    echo "Error: Neither claude nor codex CLI found"
-    exit 1
-fi
-```
-
-Or create a wrapper script at `.agentflow/loop-auto.sh`.
 
 ---
 
