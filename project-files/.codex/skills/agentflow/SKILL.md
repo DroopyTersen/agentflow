@@ -11,10 +11,14 @@ A friendly interface to the AgentFlow Kanban workflow. Translates informal reque
 
 - `.codex/prompts/af.md` — Command dispatcher (start here)
 - `.agentflow/core.md` — Shared concepts (columns, tags, agents)
+- `.agentflow/azure-devops/` — Azure DevOps backend implementation
 - `.agentflow/github/` — GitHub Projects backend implementation
 - `.agentflow/json/` — Local JSON backend implementation
 
-The af.md dispatcher will guide you to read the appropriate backend-specific files based on which config exists (`.agentflow/github.json` or `.agentflow/board.json`).
+The af.md dispatcher will guide you to read the appropriate backend-specific files based on which config exists:
+- `.agentflow/azure-devops.json` → Azure DevOps backend
+- `.agentflow/github.json` → GitHub Projects backend
+- `.agentflow/board.json` → Local JSON backend
 
 ## How This Works
 

@@ -1,6 +1,6 @@
 # AgentFlow Core Concepts
 
-Shared concepts for all backends. Backend-specific implementation is in `github/` or `json/` directories.
+Shared concepts for all backends. Backend-specific implementation is in `azure-devops/`, `github/`, or `json/` directories.
 
 ## Commands Overview
 
@@ -141,6 +141,7 @@ Cards have two content areas with different purposes:
 
 | Backend | Body | Discussion |
 |---------|------|------------|
+| Azure DevOps | Work Item Description (HTML) | Work Item Discussion (HTML) |
 | GitHub | Issue body | Issue comments |
 | JSON | `cards/{id}.md` | `cards/{id}/discussion.md` |
 
@@ -150,7 +151,7 @@ See backend-specific docs for implementation details.
 
 | Condition | Response |
 |-----------|----------|
-| No backend config | "No AgentFlow backend configured. Check for `.agentflow/github.json` or `.agentflow/board.json`" |
+| No backend config | "No AgentFlow backend configured. Check for `.agentflow/azure-devops.json`, `.agentflow/github.json`, or `.agentflow/board.json`" |
 | Card not found | "Card {id} not found" |
 | Invalid column | "Unknown column: {col}. Valid: new, approved, refinement, tech-design, implementation, final-review, done" |
 | Has needs-feedback | "Card {id} is waiting for feedback. Use `/af feedback {id}` to respond." |

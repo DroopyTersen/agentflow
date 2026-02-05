@@ -12,7 +12,7 @@
 #
 # Requirements:
 #   - Claude Code CLI or Codex CLI installed
-#   - Backend config: .agentflow/board.json (local) or .agentflow/github.json (GitHub)
+#   - Backend config: .agentflow/board.json (local), .agentflow/github.json (GitHub), or .agentflow/azure-devops.json (Azure DevOps)
 #   - .agentflow/RALPH_LOOP_PROMPT.md exists
 #
 # Output:
@@ -51,8 +51,8 @@ ITERATIONS_DIR=".agentflow/iterations"
 STATUS_FILE=".agentflow/loop_status.txt"
 START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Verify setup - supports both local (board.json) and GitHub (github.json) backends
-[[ -f ".agentflow/board.json" || -f ".agentflow/github.json" ]] || { echo "Error: No backend found (.agentflow/board.json or .agentflow/github.json)"; exit 1; }
+# Verify setup - supports local (board.json), GitHub (github.json), and Azure DevOps (azure-devops.json) backends
+[[ -f ".agentflow/board.json" || -f ".agentflow/github.json" || -f ".agentflow/azure-devops.json" ]] || { echo "Error: No backend found (.agentflow/board.json, .agentflow/github.json, or .agentflow/azure-devops.json)"; exit 1; }
 [[ -f "$PROMPT_FILE" ]] || { echo "Error: $PROMPT_FILE not found"; exit 1; }
 
 # Verify CLI is available
@@ -125,9 +125,9 @@ for ((i=1; i<=MAX_ITERATIONS; i++)); do
     # Run CLI in background, show progress dots every 10 seconds
     set +e
     if [[ "$CLI_TYPE" == "codex" ]]; then
-        # Codex exec mode
+        # Codex exec mode (--yolo = full auto + no sandbox)
         codex exec "$(cat $PROMPT_FILE)" \
-            --full-auto \
+            --yolo \
             --json \
             > "$ITERATION_FILE" 2>&1 &
     else
@@ -174,8 +174,10 @@ for ((i=1; i<=MAX_ITERATIONS; i++)); do
     # - Claude: "result" field in stream-json output
     # - Codex: JSON Lines with "message" or "content" fields
     if [[ "$CLI_TYPE" == "codex" ]]; then
-        # Codex JSON Lines format - check for signal in message/content fields
-        if grep -qE '(message|content).*AGENTFLOW_NO_WORKABLE_CARDS' "$ITERATION_FILE" 2>/dev/null; then
+        # Codex JSON Lines format - check for signal in agent_message text field only
+        # IMPORTANT: Must match "type":"agent_message" to avoid false positives from
+        # documentation text in command output (aggregated_output field)
+        if grep -qE '"type":"agent_message".*"text":"[^"]*AGENTFLOW_NO_WORKABLE_CARDS' "$ITERATION_FILE" 2>/dev/null; then
             echo ""
             echo "No workable cards remain."
             update_status "$i" "complete" "No workable cards remain. Loop finished after $i iteration(s)."
@@ -184,7 +186,7 @@ for ((i=1; i<=MAX_ITERATIONS; i++)); do
             exit 0
         fi
 
-        if grep -qE '(message|content).*AGENTFLOW_ITERATION_COMPLETE' "$ITERATION_FILE" 2>/dev/null; then
+        if grep -qE '"type":"agent_message".*"text":"[^"]*AGENTFLOW_ITERATION_COMPLETE' "$ITERATION_FILE" 2>/dev/null; then
             echo "Card processed successfully."
         else
             echo "Warning: No completion signal found. Agent may have been interrupted."

@@ -4,9 +4,10 @@ Usage: `/prompts:af <command> [args]`
 
 ## Backend Detection
 
-1. If `.agentflow/github.json` exists → GitHub Projects backend
-2. If `.agentflow/board.json` exists → Local JSON backend
-3. Neither → Error: "No AgentFlow backend configured. Run `/prompts:af-setup-github` or `/prompts:af-setup-json`"
+1. If `.agentflow/azure-devops.json` exists → Azure DevOps backend
+2. If `.agentflow/github.json` exists → GitHub Projects backend
+3. If `.agentflow/board.json` exists → Local JSON backend
+4. None → Error: "No AgentFlow backend configured. Run `/prompts:af-setup-github`, `/prompts:af-setup-azure-devops`, or `/prompts:af-setup-json`"
 
 ## Execution
 
@@ -52,7 +53,7 @@ Usage: `/prompts:af <command> [args]`
 
 | Condition | Response |
 |-----------|----------|
-| No backend | "No AgentFlow backend configured. Run `/prompts:af-setup-github` or `/prompts:af-setup-json`" |
+| No backend | "No AgentFlow backend configured. Run `/prompts:af-setup-github`, `/prompts:af-setup-azure-devops`, or `/prompts:af-setup-json`" |
 | Card not found | "Card {id} not found" |
 | Invalid column | "Unknown column: {col}" |
 | Has needs-feedback | "Card waiting for feedback. Use `/prompts:af feedback {id}`" |

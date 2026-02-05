@@ -32,16 +32,18 @@ npm install -g @openai/codex
 
 ## Step 2: Choose Your Backend
 
-AgentFlow supports two backends for storing cards:
+AgentFlow supports three backends for storing cards:
 
-| Backend | Best For |
-|---------|----------|
-| **Local JSON** | Solo work, simple projects, offline use |
-| **GitHub Projects** | Team collaboration, issue tracking integration |
+| Backend | Best For | Config File |
+|---------|----------|-------------|
+| **Local JSON** | Solo work, simple projects, offline use | `board.json` |
+| **GitHub Projects** | Team collaboration, GitHub issue tracking | `github.json` |
+| **Azure DevOps** | Enterprise teams, Azure ecosystem integration | `azure-devops.json` |
 
-**Note:** If using GitHub backend, you'll also need:
-- GitHub CLI (`gh`) installed and authenticated
-- `gh auth refresh -s project` (for project scope)
+**Backend Prerequisites:**
+
+- **GitHub:** GitHub CLI (`gh`) installed, authenticated, with project scope (`gh auth refresh -s project`)
+- **Azure DevOps:** Azure CLI (`az`) with DevOps extension, authenticated (`az login`), plus Bun runtime for tag removal
 
 ---
 
@@ -105,6 +107,34 @@ This will guide you through:
 3. Creating `.agentflow/github.json` with project IDs
 
 See [GitHub Backlog Setup](github-backlog.md) for detailed GitHub configuration.
+
+### For Azure DevOps Backend
+
+```bash
+# From the agentflow repo
+cp -r project-files/.agentflow /path/to/your-project/
+cp -r project-files/.claude /path/to/your-project/
+
+# Remove other backend files
+rm -f /path/to/your-project/.agentflow/board.json
+rm -rf /path/to/your-project/.agentflow/json
+rm -rf /path/to/your-project/.agentflow/github
+rm -rf /path/to/your-project/.agentflow/cards
+```
+
+Then run the setup command:
+
+```bash
+cd /path/to/your-project
+/af-setup-azure-devops
+```
+
+This will guide you through:
+1. Configuring Azure DevOps Kanban board columns
+2. Discovering board column field names
+3. Creating `.agentflow/azure-devops.json`
+
+See [Azure DevOps Setup](setup-azure-devops.md) for detailed configuration.
 
 ## Claude Code File Structure
 
@@ -175,6 +205,42 @@ your-project/
 └── ... (your project files)
 ```
 
+### Azure DevOps Backend
+
+```
+your-project/
+├── .agentflow/
+│   ├── azure-devops.json     # Azure DevOps project config
+│   ├── azure-devops/         # Azure DevOps backend commands
+│   │   ├── api.ts            # Bun script for REST API (tag removal)
+│   │   └── *.md              # Command docs
+│   ├── columns/              # Phase instructions
+│   ├── core.md               # Shared concepts
+│   ├── prompts/              # Agent prompts
+│   ├── loop.sh               # External loop script
+│   ├── ralph.md              # Ralph agent instructions
+│   ├── RALPH_LOOP_PROMPT.md  # Loop iteration instructions
+│   ├── PROJECT_LOOP_PROMPT.md # YOUR PROJECT CONFIG (customize this!)
+│   ├── progress.txt          # Session memory (created during loop)
+│   └── iterations/           # Per-iteration output (created during loop)
+├── .claude/
+│   ├── settings.json         # Tool permissions
+│   ├── agents/               # Specialized agents
+│   │   ├── code-explorer.md
+│   │   ├── code-architect.md
+│   │   └── code-reviewer.md
+│   ├── commands/
+│   │   ├── af.md             # /af command
+│   │   ├── af-final-review.md
+│   │   ├── af-setup-azure-devops.md
+│   │   ├── af-setup-github.md
+│   │   └── af-setup-json.md
+│   └── skills/
+│       └── agentflow/        # AgentFlow skill
+│           └── SKILL.md
+└── ... (your project files)
+```
+
 ---
 
 # Codex CLI Setup
@@ -224,29 +290,52 @@ cd /path/to/your-project
 /prompts:af-setup-github
 ```
 
+### For Azure DevOps Backend
+
+```bash
+# From the agentflow repo
+cp -r project-files/.agentflow /path/to/your-project/
+cp -r project-files/.codex /path/to/your-project/
+cp project-files/AGENTS.md /path/to/your-project/
+
+# Remove other backend files
+rm -f /path/to/your-project/.agentflow/board.json
+rm -rf /path/to/your-project/.agentflow/json
+rm -rf /path/to/your-project/.agentflow/github
+rm -rf /path/to/your-project/.agentflow/cards
+```
+
+Run the setup:
+
+```bash
+cd /path/to/your-project
+/prompts:af-setup-azure-devops
+```
+
 ## Codex CLI File Structure
 
 ```
 your-project/
-├── AGENTS.md                      # Codex project instructions
+├── AGENTS.md                                   # Codex project instructions
 ├── .agentflow/
-│   ├── board.json OR github.json  # Backend config
-│   ├── cards/                     # Card context (JSON backend only)
-│   ├── columns/                   # Phase instructions
-│   ├── core.md                    # Shared concepts
-│   ├── json/ OR github/           # Backend commands
-│   ├── prompts/                   # Agent prompts
-│   ├── loop.sh                    # External loop script (supports --codex)
-│   ├── ralph.md                   # Ralph agent instructions
-│   ├── RALPH_LOOP_PROMPT.md       # Loop iteration instructions
-│   └── PROJECT_LOOP_PROMPT.md     # YOUR PROJECT CONFIG
+│   ├── board.json OR github.json OR azure-devops.json  # Backend config
+│   ├── cards/                                  # Card context (JSON backend only)
+│   ├── columns/                                # Phase instructions
+│   ├── core.md                                 # Shared concepts
+│   ├── json/ OR github/ OR azure-devops/       # Backend commands
+│   ├── prompts/                                # Agent prompts
+│   ├── loop.sh                                 # External loop script (supports --codex)
+│   ├── ralph.md                                # Ralph agent instructions
+│   ├── RALPH_LOOP_PROMPT.md                    # Loop iteration instructions
+│   └── PROJECT_LOOP_PROMPT.md                  # YOUR PROJECT CONFIG
 ├── .codex/
-│   ├── prompts/                   # /prompts:af commands
+│   ├── prompts/                                # /prompts:af commands
 │   │   ├── af.md
+│   │   ├── af-setup-azure-devops.md
 │   │   ├── af-setup-github.md
 │   │   ├── af-setup-json.md
 │   │   └── af-final-review.md
-│   └── skills/                    # Codex skills
+│   └── skills/                                 # Codex skills
 │       ├── agentflow/
 │       │   └── SKILL.md
 │       ├── code-explorer/
@@ -376,12 +465,14 @@ cp -r "$SOURCE/.agentflow/columns/" "$TARGET/.agentflow/"
 cp -r "$SOURCE/.agentflow/prompts/" "$TARGET/.agentflow/"
 
 # Backend commands (sync whichever you use)
-cp -r "$SOURCE/.agentflow/json/" "$TARGET/.agentflow/"    # If using JSON
-cp -r "$SOURCE/.agentflow/github/" "$TARGET/.agentflow/"  # If using GitHub
+cp -r "$SOURCE/.agentflow/json/" "$TARGET/.agentflow/"         # If using JSON
+cp -r "$SOURCE/.agentflow/github/" "$TARGET/.agentflow/"       # If using GitHub
+cp -r "$SOURCE/.agentflow/azure-devops/" "$TARGET/.agentflow/" # If using Azure DevOps
 
 # Claude Code: agents, commands, and skills
 cp -r "$SOURCE/.claude/agents/" "$TARGET/.claude/"
 cp "$SOURCE/.claude/commands/af.md" "$TARGET/.claude/commands/"
+cp "$SOURCE/.claude/commands/af-setup-azure-devops.md" "$TARGET/.claude/commands/"
 cp "$SOURCE/.claude/commands/af-setup-github.md" "$TARGET/.claude/commands/"
 cp "$SOURCE/.claude/commands/af-setup-json.md" "$TARGET/.claude/commands/"
 cp "$SOURCE/.claude/commands/af-final-review.md" "$TARGET/.claude/commands/"
@@ -398,8 +489,8 @@ cp -r "$SOURCE/.codex/skills/" "$TARGET/.codex/"
 Never overwrite these project-specific files:
 
 - `.agentflow/PROJECT_LOOP_PROMPT.md` — your project config
-- `.agentflow/board.json` or `github.json` — your cards
-- `.agentflow/cards/` — your card context
+- `.agentflow/board.json`, `github.json`, or `azure-devops.json` — your backend config
+- `.agentflow/cards/` — your card context (JSON backend only)
 - `.agentflow/progress.txt` — your session memory
 - Any custom commands you've added
 
@@ -417,7 +508,10 @@ Ensure `.codex/prompts/af.md` exists and Codex is running in the project directo
 
 ## "No backend found" error from loop.sh
 
-Either `board.json` (JSON backend) or `github.json` (GitHub backend) must exist in `.agentflow/`.
+One of these backend config files must exist in `.agentflow/`:
+- `board.json` (JSON backend)
+- `github.json` (GitHub backend)
+- `azure-devops.json` (Azure DevOps backend)
 
 ## GitHub API errors
 
@@ -426,6 +520,17 @@ Run `/af-setup-github` (or `/prompts:af-setup-github`) to reconfigure, or check 
 ```bash
 gh auth status
 ```
+
+## Azure DevOps API errors
+
+Run `/af-setup-azure-devops` (or `/prompts:af-setup-azure-devops`) to reconfigure, or check your `az` CLI authentication:
+
+```bash
+az account show
+az devops project show --project YOUR_PROJECT
+```
+
+If you see "TF400813: not authorized", check your Azure DevOps permissions.
 
 ## Loop exits immediately
 
@@ -440,12 +545,13 @@ Check `.agentflow/loop_status.txt` for status. Common causes:
 | File | Template vs Project-Specific |
 |------|------------------------------|
 | `PROJECT_LOOP_PROMPT.md` | **Project-specific** — your config |
-| `board.json` or `github.json` | **Project-specific** — your cards |
-| `.agentflow/cards/*.md` | **Project-specific** — your card context |
+| `board.json`, `github.json`, or `azure-devops.json` | **Project-specific** — your backend config |
+| `.agentflow/cards/*.md` | **Project-specific** — your card context (JSON only) |
 | `progress.txt` | **Project-specific** — session memory |
 | `RALPH_LOOP_PROMPT.md` | Template — sync from source |
 | `columns/*.md` | Template — sync from source |
 | `.claude/agents/*.md` | Template — sync from source |
 | `.claude/commands/af*.md` | Template — sync from source |
 | `.claude/skills/agentflow/` | Template — sync from source |
+| `.codex/prompts/af*.md` | Template — sync from source (Codex) |
 | `.codex/skills/agentflow/` | Template — sync from source (Codex) |

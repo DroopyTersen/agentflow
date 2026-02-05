@@ -35,6 +35,7 @@ AgentFlow supports multiple backends. Detection is based on which config file ex
 
 | Backend | Config File | Setup Command |
 |---------|-------------|---------------|
+| Azure DevOps | `.agentflow/azure-devops.json` | `/af-setup-azure-devops` |
 | GitHub Projects | `.agentflow/github.json` | `/af-setup-github` |
 | Local JSON | `.agentflow/board.json` | `/af-setup-json` |
 
@@ -44,6 +45,17 @@ AgentFlow supports multiple backends. Detection is based on which config file ex
 .agentflow/
 ├── README.md               # This file
 ├── core.md                 # Shared concepts (columns, tags, priorities)
+│
+├── azure-devops/           # Azure DevOps backend commands
+│   ├── README.md           # Azure DevOps patterns and auth
+│   ├── api.ts              # Bun REST API helper (tag removal, etc.)
+│   ├── add.md              # Create work item
+│   ├── list.md             # List work items by column
+│   ├── show.md             # Display work item details
+│   ├── move.md             # Change Kanban column
+│   ├── tag.md              # Manage tags
+│   ├── context.md          # Update description/discussion
+│   └── workflow.md         # Work/next/loop/feedback/depends/review
 │
 ├── github/                 # GitHub backend commands
 │   ├── README.md           # GitHub patterns and auth
@@ -70,6 +82,7 @@ AgentFlow supports multiple backends. Detection is based on which config file ex
 │   ├── code-explorer.md    # Codebase analysis agent
 │   ├── code-architect.md   # Architecture design agent
 │   ├── code-reviewer.md    # Code review agent
+│   ├── af-setup-azure-devops.md  # Azure DevOps setup instructions
 │   ├── af-setup-github.md  # GitHub setup instructions
 │   ├── af-setup-json.md    # JSON setup instructions
 │   └── af-final-review.md  # Final review workflow
@@ -116,13 +129,15 @@ When you run `/af add`:
 
 ## Adding a New Backend
 
-To add support for a new backend (e.g., Azure DevOps):
+To add support for a new backend (e.g., Jira, Linear):
 
-1. Create `.agentflow/azure-devops/` directory
+1. Create `.agentflow/{backend}/` directory
 2. Add command files: `add.md`, `list.md`, `show.md`, `move.md`, etc.
-3. Add setup prompt: `.agentflow/prompts/af-setup-azure-devops.md`
+3. Add setup prompt: `.agentflow/prompts/af-setup-{backend}.md`
 4. Update `af.md` dispatcher to detect the new config file
-5. Create thin wrapper: `.claude/commands/af-setup-azure-devops.md`
+5. Create thin wrapper: `.claude/commands/af-setup-{backend}.md`
+
+**Example:** Azure DevOps backend was added following this pattern - see `.agentflow/azure-devops/` for reference.
 
 Each command file should:
 - Reference `core.md` for shared concepts

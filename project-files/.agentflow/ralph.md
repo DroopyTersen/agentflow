@@ -58,6 +58,7 @@ This approach has several advantages:
 |------|---------|
 | `.agentflow/loop.sh` | External bash loop script |
 | `.agentflow/RALPH_LOOP_PROMPT.md` | Instructions piped to Claude each iteration |
+| `.agentflow/azure-devops.json` | Board config - Azure DevOps backend |
 | `.agentflow/board.json` | Board state - local backend |
 | `.agentflow/github.json` | Board config - GitHub Projects backend |
 | `.agentflow/cards/*.md` | Card context files (accumulate over time) |

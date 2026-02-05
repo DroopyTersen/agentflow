@@ -136,7 +136,12 @@ Present your results as a numbered list. Each entry should contain:
 - Subjective naming conventions
 - Minor refactoring without clear, proven benefit
 - Speculative suggestions you cannot fully validate
-- Suggesting tests unless explicitly requested or already present
+
+### Proactively Suggest (High Value)
+
+- **Unit tests for untested code paths** - If you see logic without test coverage, suggest specific tests
+- **Edge case tests** - Identify boundary conditions and null/undefined scenarios that should be tested
+- **Regression tests for bug fixes** - Every bug fix should come with a test that would have caught it
 
 ## Important Reminders
 
